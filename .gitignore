@@ -27,3 +27,4 @@ Thumbs.db
 
 # Maven Wrapper: keep .mvn/wrapper/maven-wrapper.properties, mvnw and mvnw.cmd committed.
 .mvn/wrapper/maven-wrapper.jar
+/CLAUDE.md
