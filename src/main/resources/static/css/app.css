@@ -1,0 +1,19 @@
+body {
+    font-family: system-ui, sans-serif;
+    font-size: 1.25rem;
+    line-height: 1.5;
+    margin: 0;
+    padding: 2rem 1rem;
+    background: #fafafa;
+    color: #222;
+}
+
+main {
+    max-width: 40rem;
+    margin: 0 auto;
+}
+
+.status {
+    color: #1b6e2d;
+    font-weight: bold;
+}
