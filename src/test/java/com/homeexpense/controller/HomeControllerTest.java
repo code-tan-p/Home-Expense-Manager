@@ -82,6 +82,73 @@ class HomeControllerTest extends SqliteIntegrationTest {
                 .andExpect(content().string(containsString("₹500.00")));
     }
 
+    @Autowired
+    private com.homeexpense.service.WorkerService workerService;
+
+    @Autowired
+    private com.homeexpense.service.DailyWorkService dailyWorkService;
+
+    private Long addWorker(String name, String pay, String rate) throws Exception {
+        mockMvc.perform(post("/staff").param("name", name).param("typeId", "1").param("start", "2026-05-01")
+                .param("pay", pay).param("rate", rate)
+                .param("days", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"));
+        return workerService.listAllWorkers().stream().filter(w -> w.getName().equals(name)).findFirst().orElseThrow().getId();
+    }
+
+    @Test
+    void badRateCreatesNoWorkerAtAll() throws Exception {
+        mockMvc.perform(post("/staff").param("name", "Ghost Worker").param("typeId", "1").param("start", "2026-05-01")
+                .param("pay", "MONTHLY_SALARY").param("rate", "abc"));
+        org.junit.jupiter.api.Assertions.assertTrue(
+                workerService.listAllWorkers().stream().noneMatch(w -> w.getName().equals("Ghost Worker")));
+    }
+
+    @Test
+    void entryCanBeUndoneAndRecordedAgain() throws Exception {
+        Long id = addWorker("Undo Person", "MONTHLY_SALARY", "3000");
+        var day = java.time.LocalDate.of(2026, 5, 11);
+        Long entry = dailyWorkService.dayView(day).workers().stream().filter(w -> w.worker().getId().equals(id))
+                .findFirst().orElseThrow().expected().getFirst().entry().getId();
+        mockMvc.perform(post("/work/done").param("date", day.toString()).param("workerId", id.toString())
+                .param("entryId", entry.toString()));
+        Long record = dailyWorkService.dayView(day).workers().stream().filter(w -> w.worker().getId().equals(id))
+                .findFirst().orElseThrow().expected().getFirst().record().getId();
+        mockMvc.perform(post("/work/undo").param("date", day.toString()).param("recordId", record.toString()))
+                .andExpect(status().is3xxRedirection());
+        org.junit.jupiter.api.Assertions.assertNull(dailyWorkService.dayView(day).workers().stream()
+                .filter(w -> w.worker().getId().equals(id)).findFirst().orElseThrow().expected().getFirst().record());
+    }
+
+    @Test
+    void markAllSkipsMilkAndHourlyWorkers() throws Exception {
+        Long salaried = addWorker("Salaried Sam", "MONTHLY_SALARY", "3000");
+        Long milk = addWorker("Milk Mo", "PER_UNIT", "70");
+        var day = java.time.LocalDate.of(2026, 5, 12);
+        mockMvc.perform(post("/work/all-present").param("date", day.toString()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash()
+                        .attribute("ok", containsString("Milk Mo")));
+        var byId = dailyWorkService.dayView(day).workers().stream()
+                .collect(java.util.stream.Collectors.toMap(w -> w.worker().getId(), w -> w));
+        org.junit.jupiter.api.Assertions.assertNotNull(byId.get(salaried).expected().getFirst().record());
+        org.junit.jupiter.api.Assertions.assertNull(byId.get(milk).expected().getFirst().record());
+    }
+
+    @Test
+    void workerCanGetARaiseStopOnAPastDayAndComeBack() throws Exception {
+        Long id = addWorker("Raise Rita", "MONTHLY_SALARY", "3000");
+        mockMvc.perform(post("/staff/" + id + "/pay").param("rate", "3500").param("from", "2026-06-01"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash()
+                        .attribute("ok", containsString("2026-06-01")));
+        mockMvc.perform(post("/staff/" + id + "/days").param("from", "2026-06-01").param("days", "MONDAY", "FRIDAY"))
+                .andExpect(status().is3xxRedirection());
+        mockMvc.perform(post("/staff/" + id + "/stop").param("last", "2026-06-30"))
+                .andExpect(status().is3xxRedirection());
+        org.junit.jupiter.api.Assertions.assertFalse(workerService.isEmployedOn(id, java.time.LocalDate.of(2026, 7, 1)));
+        org.junit.jupiter.api.Assertions.assertTrue(workerService.isEmployedOn(id, java.time.LocalDate.of(2026, 6, 30)));
+    }
+
     @Test
     void missingFieldShowsAMessageNotAnErrorPage() throws Exception {
         mockMvc.perform(post("/pay/payment").param("workerId", "1"))
@@ -105,7 +172,7 @@ class HomeControllerTest extends SqliteIntegrationTest {
 
     @Test
     void backupDownloadsADatabaseFile() throws Exception {
-        mockMvc.perform(get("/backup/download"))
+        mockMvc.perform(post("/backup/download"))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Content-Disposition", containsString("home-expense-")));
     }

@@ -12,7 +12,9 @@
     <section class="card">
         <h2>Download a backup</h2>
         <p>One file with every worker, attendance record and payment. Save it somewhere safe, such as a pen drive or your email.</p>
-        <a class="btn primary" th:href="@{/backup/download}">Download backup</a>
+        <form th:action="@{/backup/download}" method="post">
+            <button class="btn primary" type="submit">Download backup</button>
+        </form>
     </section>
 
     <section class="card">
