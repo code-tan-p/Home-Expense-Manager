@@ -329,6 +329,33 @@ public class EarningsService {
         return result(run, List.of());
     }
 
+    /** What a month would come to, worked out now and not saved. */
+    public record Preview(long totalPaise, List<String> blockers, List<String> warnings, boolean finalized) {
+    }
+
+    /**
+     * Read-only view of a month for screens that only look. A finalized month shows what was saved;
+     * any other month is calculated on the spot and nothing is written.
+     */
+    @Transactional(readOnly = true)
+    public Preview preview(Long workerId, YearMonth month) {
+        Worker worker = workerService.getWorker(workerId);
+        requireMonth(month);
+        EarningRun run = runRepository.findActive(workerId, month.atDay(1)).orElse(null);
+        if (run != null && !run.isDraft()) {
+            EarningsResult saved = result(run, List.of());
+            return new Preview(saved.totalPaise(), saved.blockers(), saved.warnings(), true);
+        }
+        EarningsCalculator.Calculation calc = calculator.calculate(worker, month);
+        long total = 0;
+        for (EarningsCalculator.PlannedLine line : calc.lines()) {
+            if (line.amountPaise != null) {
+                total = Math.addExact(total, line.amountPaise);
+            }
+        }
+        return new Preview(total, calc.blockers(), calc.warnings(), false);
+    }
+
     // ------------------------------------------------------------------ helpers
 
     private void clearDraft(EarningRun run) {

@@ -24,9 +24,36 @@ public class BackupController {
     private final JdbcTemplate jdbc;
     private final Clock clock;
 
-    public BackupController(JdbcTemplate jdbc, Clock clock) {
+    private final Path dataDir;
+
+    public BackupController(JdbcTemplate jdbc, Clock clock,
+                            @org.springframework.beans.factory.annotation.Value("${home-expense.data-dir}") Path dataDir) {
         this.jdbc = jdbc;
         this.clock = clock;
+        this.dataDir = dataDir;
+    }
+
+    /**
+     * Receives a backup file and leaves it beside the live database. It is swapped in the next time
+     * the application starts, see {@code DataSourceConfig.applyPendingRestore}.
+     */
+    @org.springframework.web.bind.annotation.PostMapping("/backup/restore")
+    public String restore(@org.springframework.web.bind.annotation.RequestParam("file") org.springframework.web.multipart.MultipartFile file,
+                          org.springframework.web.servlet.mvc.support.RedirectAttributes flash) throws IOException {
+        byte[] header = new byte[16];
+        try (java.io.InputStream in = file.getInputStream()) {
+            int read = in.readNBytes(header, 0, header.length);
+            if (file.isEmpty() || read < 16 || !new String(header, 0, 15, java.nio.charset.StandardCharsets.US_ASCII).equals("SQLite format 3")) {
+                throw new com.homeexpense.exception.BusinessRuleException(
+                        "That file is not a Home Expense Manager backup. Choose the file you downloaded from this page.");
+            }
+        }
+        try (java.io.InputStream in = file.getInputStream()) {
+            Files.copy(in, dataDir.resolve("restore-pending.db"), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        }
+        flash.addFlashAttribute("ok", "Backup received. Close the program and open it again to finish restoring. "
+                + "Your current records are kept as a safety copy.");
+        return "redirect:/backup";
     }
 
     @GetMapping("/backup")

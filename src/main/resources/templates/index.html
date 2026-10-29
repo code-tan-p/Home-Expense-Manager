@@ -57,6 +57,16 @@
                 <span class="badge off" th:if="${a.record().outcome.name() == 'NOT_DONE' and a.record().absenceReason.name() == 'HOUSEHOLD_HOLIDAY'}"
                       th:text="${milk ? 'No delivery' : 'Our holiday'}">Our holiday</span>
                 <span class="badge wait" th:if="${a.record().outcome.name() == 'NOT_DONE' and a.record().absenceReason.name() == 'UNAUTHORIZED_ABSENCE'}">Didn't come</span>
+                <form th:if="${a.record().absenceReason != null and a.record().absenceReason.name() == 'UNAUTHORIZED_ABSENCE' and a.record().deductionDecision.name() == 'PENDING'}"
+                      th:action="@{/work/deduction}" method="post" class="actions">
+                    <input type="hidden" name="date" th:value="${date}">
+                    <input type="hidden" name="recordId" th:value="${a.record().id}">
+                    <span class="meta">Reduce pay for this day?</span>
+                    <button class="btn caution" name="decision" value="APPROVED" type="submit">Yes, reduce</button>
+                    <button class="btn" name="decision" value="WAIVED" type="submit">No, pay in full</button>
+                </form>
+                <span class="meta" th:if="${a.record().absenceReason != null and a.record().absenceReason.name() == 'UNAUTHORIZED_ABSENCE' and a.record().deductionDecision.name() == 'APPROVED'}">Pay reduced</span>
+                <span class="meta" th:if="${a.record().absenceReason != null and a.record().absenceReason.name() == 'UNAUTHORIZED_ABSENCE' and a.record().deductionDecision.name() == 'WAIVED'}">Paid in full</span>
                 <form th:action="@{/work/undo}" method="post" onsubmit="return confirm('Remove this entry so you can record it again?')">
                     <input type="hidden" name="date" th:value="${date}">
                     <input type="hidden" name="recordId" th:value="${a.record().id}">
