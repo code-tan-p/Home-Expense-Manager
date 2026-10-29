@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Monthly Pay')}"></head>
+<body>
+<header th:replace="~{fragments :: header('pay')}"></header>
+<main>
+    <h1>Monthly Pay</h1>
+    <p class="sub">What each person has earned in the month, worked out from what you recorded.</p>
+
+    <div th:replace="~{fragments :: messages}"></div>
+
+    <div class="toolbar">
+        <a class="btn" th:href="@{/pay(month=${previous})}" aria-label="Previous month">&larr;</a>
+        <span class="date" th:text="${#temporals.format(month, 'MMMM yyyy')}">October 2026</span>
+        <a class="btn" th:href="@{/pay(month=${next})}" aria-label="Next month">&rarr;</a>
+    </div>
+
+    <div class="card empty" th:if="${rows.isEmpty()}">Nothing recorded for this month yet.</div>
+
+    <section class="card" th:each="r : ${rows}">
+        <div class="row">
+            <div class="person">
+                <div class="avatar" th:text="${#strings.substring(r.worker().name, 0, 1)}">A</div>
+                <div>
+                    <div class="name" th:text="${r.worker().name}">Anita Sharma</div>
+                    <div class="meta" th:text="${r.worker().workerType.name}">Maid</div>
+                </div>
+            </div>
+            <div class="total" th:if="${r.earnings() != null}"
+                 th:text="${T(com.homeexpense.money.Money).format(r.earnings().totalPaise())}">₹5500.00</div>
+        </div>
+
+        <p class="meta" th:if="${r.problem() != null}" th:text="${r.problem()}"></p>
+
+        <div th:if="${r.earnings() != null}">
+            <ul class="plain" th:if="${!r.earnings().blockers().isEmpty()}">
+                <li th:each="b : ${r.earnings().blockers()}"
+                    th:text="${#strings.contains(b, ': ') ? #strings.substringBefore(b, ': ') + '. Record them on the Today screen.' : b}">Record the missing days first.</li>
+            </ul>
+            <ul class="plain" th:if="${!r.earnings().warnings().isEmpty()}">
+                <li th:each="w : ${r.earnings().warnings()}" th:text="${w}">note</li>
+            </ul>
+            <form class="actions activity" th:action="@{/pay/payment}" method="post">
+                <input type="hidden" name="workerId" th:value="${r.worker().id}">
+                <input type="hidden" name="month" th:value="${month}">
+                <input class="small" type="text" name="amount" inputmode="decimal" placeholder="Amount paid (₹)" required aria-label="Amount paid">
+                <select name="method" aria-label="How was it paid" style="width:auto">
+                    <option th:each="m : ${methods}" th:value="${m.name()}"
+                            th:text="${m.name() == 'UPI' ? 'UPI' : (m.name() == 'CASH' ? 'Cash' : 'Bank transfer')}">Cash</option>
+                </select>
+                <button class="btn accent" type="submit">Record payment</button>
+            </form>
+        </div>
+    </section>
+</main>
+</body>
+</html>

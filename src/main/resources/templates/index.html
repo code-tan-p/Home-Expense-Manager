@@ -1,16 +1,99 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Home Expense Manager</title>
-    <link rel="stylesheet" th:href="@{/css/app.css}">
-</head>
+<head th:replace="~{fragments :: head('Today')}"></head>
 <body>
+<header th:replace="~{fragments :: header('today')}"></header>
 <main>
-    <h1>Home Expense Manager</h1>
-    <p class="status">&#10004; The application is running.</p>
-    <p>Worker, attendance and payment features will be added in the next phases.</p>
+    <h1>Today</h1>
+    <p class="sub">
+        <span th:text="${#temporals.format(date, 'EEEE, d MMMM yyyy')}">Thursday, 30 October 2026</span>
+        <span th:if="${pending > 0}"> · <strong th:text="${pending} + ' still to record'">2 still to record</strong></span>
+        <span th:if="${pending == 0 and !view.workers().isEmpty()}"> · All recorded</span>
+    </p>
+
+    <div th:replace="~{fragments :: messages}"></div>
+
+    <div class="toolbar">
+        <a class="btn" th:href="@{/(date=${previous})}" aria-label="Previous day">&larr;</a>
+        <a class="btn" th:href="@{/(date=${next})}" aria-label="Next day">&rarr;</a>
+        <a class="btn quiet" th:unless="${isToday}" th:href="@{/}">Back to today</a>
+        <span class="spacer"></span>
+        <form th:action="@{/work/all-present}" method="post" th:if="${pending > 0}"
+              onsubmit="return confirm('Mark everyone who is not recorded yet as worked? Milk and hourly workers are skipped.')">
+            <input type="hidden" name="date" th:value="${date}">
+            <button class="btn primary" type="submit">Mark all as worked</button>
+        </form>
+    </div>
+
+    <div class="card empty" th:if="${view.workers().isEmpty()}">
+        <p>No one is working on this day yet.</p>
+        <a class="btn primary" th:href="@{/staff}">Add your first worker</a>
+    </div>
+
+    <section class="card" th:each="day : ${view.workers()}"
+             th:with="model=${payModels.get(day.worker().id)},
+                      milk=${payModels.get(day.worker().id) != null and payModels.get(day.worker().id).name() == 'PER_UNIT'},
+                      hourly=${payModels.get(day.worker().id) != null and payModels.get(day.worker().id).name() == 'HOURLY'}">
+        <div class="row">
+            <div class="person">
+                <div class="avatar" th:text="${#strings.substring(day.worker().name, 0, 1)}">A</div>
+                <div>
+                    <div class="name" th:text="${day.worker().name}">Anita Sharma</div>
+                    <div class="meta" th:text="${day.worker().workerType.name}">Maid</div>
+                </div>
+            </div>
+            <span class="badge off" th:if="${day.dayType().name() == 'REGULAR_DAY_OFF' and day.unscheduled().isEmpty()}">Day off</span>
+        </div>
+
+        <div class="activity row" th:each="a : ${day.expected()}">
+            <div th:text="${a.entry().task != null ? a.entry().task.name : a.entry().shift.name}">Daily work</div>
+
+            <div class="actions" th:if="${a.recorded}">
+                <span class="badge done" th:if="${a.record().outcome.name() == 'COMPLETED' and a.record().actualQuantityMilli != null}"
+                      th:text="'Done · ' + ${#numbers.formatDecimal(a.record().actualQuantityMilli / 1000.0, 1, 'NONE', 2, 'POINT')} + ' litres'">Done</span>
+                <span class="badge done" th:if="${a.record().outcome.name() == 'COMPLETED' and a.record().actualQuantityMilli == null}">Done</span>
+                <span class="badge off" th:if="${a.record().outcome.name() == 'PARTIAL'}">Partly done</span>
+                <span class="badge off" th:if="${a.record().outcome.name() == 'NOT_DONE' and a.record().absenceReason.name() == 'APPROVED_LEAVE'}">On leave</span>
+                <span class="badge off" th:if="${a.record().outcome.name() == 'NOT_DONE' and a.record().absenceReason.name() == 'HOUSEHOLD_HOLIDAY'}"
+                      th:text="${milk ? 'No delivery' : 'Our holiday'}">Our holiday</span>
+                <span class="badge wait" th:if="${a.record().outcome.name() == 'NOT_DONE' and a.record().absenceReason.name() == 'UNAUTHORIZED_ABSENCE'}">Didn't come</span>
+                <form th:action="@{/work/undo}" method="post" onsubmit="return confirm('Remove this entry so you can record it again?')">
+                    <input type="hidden" name="date" th:value="${date}">
+                    <input type="hidden" name="recordId" th:value="${a.record().id}">
+                    <button class="btn quiet" type="submit">Undo</button>
+                </form>
+            </div>
+
+            <form class="actions" th:unless="${a.recorded}" th:action="@{/work/done}" method="post">
+                <input type="hidden" name="date" th:value="${date}">
+                <input type="hidden" name="workerId" th:value="${day.worker().id}">
+                <input type="hidden" name="entryId" th:value="${a.entry().id}">
+                <input class="small" type="text" inputmode="decimal" name="quantity" placeholder="Litres" required
+                       th:if="${milk}" aria-label="Litres delivered">
+                <input class="small" type="text" inputmode="decimal" name="hours" placeholder="Hours" required
+                       th:if="${hourly}" aria-label="Hours worked">
+                <button class="btn primary" type="submit" th:text="${milk ? 'Save litres' : 'Done'}">Done</button>
+            </form>
+        </div>
+
+        <form class="actions activity" th:if="${day.notRecordedCount() > 0}" th:action="@{/work/absent}" method="post">
+            <input type="hidden" name="date" th:value="${date}">
+            <input type="hidden" name="workerId" th:value="${day.worker().id}">
+            <span class="meta">Didn't work today:</span>
+            <button class="btn" name="reason" value="HOUSEHOLD_HOLIDAY" type="submit"
+                    th:text="${milk ? 'No delivery' : 'Our holiday'}">Our holiday</button>
+            <button class="btn" name="reason" value="APPROVED_LEAVE" type="submit" th:unless="${milk}">On leave</button>
+            <button class="btn" name="reason" value="UNAUTHORIZED_ABSENCE" type="submit"
+                    title="Didn't come and had not asked. This can reduce pay." th:unless="${milk}">Didn't come</button>
+        </form>
+
+        <div class="activity" th:if="${!day.unscheduled().isEmpty()}">
+            <span class="badge wait" th:text="${day.unscheduledWorkLabel()}">Extra work</span>
+        </div>
+        <ul class="plain" th:if="${!day.flags().isEmpty()}">
+            <li th:each="f : ${day.flags()}" th:text="${f}">note</li>
+        </ul>
+    </section>
 </main>
 </body>
 </html>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="head(title)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${title} + ' · Home Expense Manager'">Home Expense Manager</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<header class="topbar" th:fragment="header(active)">
+    <div class="topbar-inner">
+        <div class="brand">Home Expense <span>Manager</span></div>
+        <nav aria-label="Main">
+            <a th:href="@{/}" th:classappend="${active == 'today'} ? 'active'">Today</a>
+            <a th:href="@{/staff}" th:classappend="${active == 'staff'} ? 'active'">Staff</a>
+            <a th:href="@{/pay}" th:classappend="${active == 'pay'} ? 'active'">Monthly Pay</a>
+            <a th:href="@{/backup}" th:classappend="${active == 'backup'} ? 'active'">Backup</a>
+        </nav>
+    </div>
+</header>
+<div th:fragment="messages">
+    <div class="flash ok" th:if="${ok}" th:text="${ok}" role="status"></div>
+    <div class="flash error" th:if="${error}" th:text="${error}" role="alert"></div>
+</div>
+</body>
+</html>
