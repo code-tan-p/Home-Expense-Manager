@@ -58,7 +58,7 @@ public class StaffController {
         }
     }
 
-    public record StaffRow(Worker worker, boolean active, String payText) {
+    public record StaffRow(Worker worker, boolean active, String payText, java.util.Set<DayOfWeek> days) {
     }
 
     private final WorkerService workerService;
@@ -81,7 +81,8 @@ public class StaffController {
         LocalDate today = LocalDate.now(clock);
         List<StaffRow> rows = new ArrayList<>();
         for (Worker worker : workerService.listAllWorkers()) {
-            rows.add(new StaffRow(worker, workerService.isActiveToday(worker.getId()), payText(worker, today)));
+            rows.add(new StaffRow(worker, workerService.isActiveToday(worker.getId()), payText(worker, today),
+                    currentDays(worker.getId(), today)));
         }
         model.addAttribute("page", "staff");
         model.addAttribute("rows", rows);
@@ -149,6 +150,18 @@ public class StaffController {
         scheduleService.addScheduleVersion(id, from, entries, null);
         flash.addFlashAttribute("ok", "New weekdays saved from " + from + ".");
         return "redirect:/staff";
+    }
+
+    /** The weekdays the worker is expected on, read from the schedule for the next seven days. */
+    private java.util.Set<DayOfWeek> currentDays(Long workerId, LocalDate today) {
+        java.util.Set<DayOfWeek> days = java.util.EnumSet.noneOf(DayOfWeek.class);
+        for (int i = 0; i < 7; i++) {
+            LocalDate date = today.plusDays(i);
+            if (!scheduleService.entriesOn(workerId, date).isEmpty()) {
+                days.add(date.getDayOfWeek());
+            }
+        }
+        return days;
     }
 
     private Task defaultTask() {

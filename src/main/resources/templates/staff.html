@@ -42,7 +42,7 @@
                 <span class="meta">Works on:</span>
                 <span class="days">
                     <label th:each="d : ${days}">
-                        <input type="checkbox" name="days" th:value="${d.name()}">
+                        <input type="checkbox" name="days" th:value="${d.name()}" th:checked="${r.days().contains(d)}">
                         <span th:text="${#strings.capitalize(#strings.toLowerCase(#strings.substring(d.name(), 0, 3)))}">Mon</span>
                     </label>
                 </span>
