@@ -1,7 +1,10 @@
 package com.homeexpense.controller;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
@@ -18,10 +21,69 @@ class HomeControllerTest extends SqliteIntegrationTest {
     private MockMvc mockMvc;
 
     @Test
-    void homePageRenders() throws Exception {
+    void todayPageRenders() throws Exception {
         mockMvc.perform(get("/"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("index"))
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("The application is running.")));
+                .andExpect(content().string(containsString("Today")));
+    }
+
+    @Test
+    void staffPayAndBackupPagesRender() throws Exception {
+        mockMvc.perform(get("/staff")).andExpect(status().isOk()).andExpect(content().string(containsString("Add a worker")));
+        mockMvc.perform(get("/pay")).andExpect(status().isOk()).andExpect(content().string(containsString("Monthly Pay")));
+        mockMvc.perform(get("/backup")).andExpect(status().isOk()).andExpect(content().string(containsString("Download backup")));
+    }
+
+    @Test
+    void addedWorkerAppearsOnStaffAndTodayScreens() throws Exception {
+        mockMvc.perform(post("/staff")
+                        .param("name", "Anita Sharma").param("typeId", "1").param("start", "2026-01-01")
+                        .param("pay", "MONTHLY_SALARY").param("rate", "5500")
+                        .param("days", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"))
+                .andExpect(status().is3xxRedirection());
+        mockMvc.perform(get("/staff")).andExpect(content().string(containsString("Anita Sharma")))
+                .andExpect(content().string(containsString("5500.00")));
+        mockMvc.perform(get("/").param("date", "2026-03-02")).andExpect(content().string(containsString("Anita Sharma")));
+    }
+
+    @Test
+    void milkmanIsAskedForLitresAndNoDeliveryIsOffered() throws Exception {
+        mockMvc.perform(post("/staff")
+                        .param("name", "Ramesh Yadav").param("typeId", "1").param("start", "2026-01-01")
+                        .param("pay", "PER_UNIT").param("rate", "72")
+                        .param("days", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"))
+                .andExpect(status().is3xxRedirection());
+        mockMvc.perform(get("/").param("date", "2026-03-02"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Litres")))
+                .andExpect(content().string(containsString("No delivery")));
+        mockMvc.perform(post("/work/done").param("date", "2026-03-02").param("workerId", "1").param("entryId", "1")
+                        .param("quantity", "1,5"))
+                .andExpect(status().is3xxRedirection());
+        mockMvc.perform(get("/").param("date", "2026-03-02"))
+                .andExpect(content().string(containsString("1.50 litres")));
+    }
+
+    @Test
+    void referrerFromAnotherSiteIsNeverFollowed() {
+        org.junit.jupiter.api.Assertions.assertEquals("/", WebErrorAdvice.samePagePath("https://evil.example"));
+        org.junit.jupiter.api.Assertions.assertEquals("/staff", WebErrorAdvice.samePagePath("http://127.0.0.1:8080/staff"));
+    }
+
+    @Test
+    void badInputShowsAMessageInsteadOfAnErrorPage() throws Exception {
+        mockMvc.perform(post("/staff").header("Referer", "/staff")
+                        .param("name", " ").param("typeId", "1").param("start", "2026-01-01")
+                        .param("pay", "MONTHLY_SALARY").param("rate", "5500"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string("Location", "/staff"));
+    }
+
+    @Test
+    void backupDownloadsADatabaseFile() throws Exception {
+        mockMvc.perform(get("/backup/download"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Disposition", containsString("home-expense-")));
     }
 }

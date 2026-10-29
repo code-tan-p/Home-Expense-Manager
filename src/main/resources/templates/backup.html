@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Backup')}"></head>
+<body>
+<header th:replace="~{fragments :: header('backup')}"></header>
+<main>
+    <h1>Backup</h1>
+    <p class="sub">Keep a safe copy of all your records.</p>
+
+    <div th:replace="~{fragments :: messages}"></div>
+
+    <section class="card">
+        <h2>Download a backup</h2>
+        <p>One file with every worker, attendance record, payment and settlement. Save it somewhere safe, such as a pen drive or your email.</p>
+        <a class="btn primary" th:href="@{/backup/download}">Download backup</a>
+    </section>
+
+    <section class="card">
+        <h2>Restore</h2>
+        <p class="meta">To restore, stop the app, replace <code>home-expense.db</code> in the folder
+            <code>.home-expense-manager</code> inside your user folder with your backup file, and start the app again. Also delete the old <code>home-expense.db-wal</code> and
+            <code>home-expense.db-shm</code> files if they are there. Ask a family member to help if unsure.</p>
+    </section>
+</main>
+</body>
+</html>

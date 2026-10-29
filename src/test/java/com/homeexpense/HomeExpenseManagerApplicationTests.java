@@ -24,7 +24,9 @@ class HomeExpenseManagerApplicationTests extends SqliteIntegrationTest {
 
     @Test
     void testsUseTemporaryDatabaseNotTheRealOne() {
-        assertThat(datasourceUrl).isEqualTo("jdbc:sqlite:" + DATA_DIR.resolve("home-expense.db"));
+        // Windows paths use backslashes while the configured URL uses a forward slash before the file name.
+        assertThat(datasourceUrl.replace('\\', '/'))
+                .isEqualTo(("jdbc:sqlite:" + DATA_DIR.resolve("home-expense.db")).replace('\\', '/'));
         assertThat(datasourceUrl).doesNotContain(".home-expense-manager");
     }
 }

@@ -4,7 +4,9 @@ A simple, offline household expense and worker management application for a sing
 household on one computer. It tracks household workers, daily work, attendance,
 salaries, advances, payments, monthly settlements, reports and backups.
 
-Project requirements and development phases are in [CLAUDE.md](CLAUDE.md).
+The screens are simple on purpose: **Today** (one tap per worker), **Staff** (add a worker
+with pay and weekdays in one form), **Monthly Pay** (earnings and payments) and **Backup**
+(one-click download).
 
 ## Status
 
@@ -33,7 +35,9 @@ Project requirements and development phases are in [CLAUDE.md](CLAUDE.md).
   audited reopening of earnings and settlements; corrections by adjustment, reversal or
   reviewed void-and-replace. Financial history is never edited or deleted. Backend only.
 
-Screens (dashboard, daily entry, calendar, reports) are Phase 6.
+- Phase 6 (screens): a Thymeleaf website in an earthy, minimal theme (see
+  `src/main/resources/static/css/app.css`) built on the services above. Today, Staff,
+  Monthly Pay and Backup. Settlements, advances and corrections have no screens yet.
 
 ## Requirements
 
@@ -78,7 +82,8 @@ The live database is stored outside this repository:
 The folder is created automatically on first start. SQLite runs in WAL mode, so the
 folder may also contain `home-expense.db-wal` and `home-expense.db-shm` files; these are
 part of the live database. Do not copy only the `.db` file as a backup. A proper backup
-feature is planned for a later phase.
+feature is the **Backup** screen: it downloads one complete, consistent copy of the database
+(`VACUUM INTO`), so a single file is enough.
 
 To use a different folder (for example, for a trial run):
 

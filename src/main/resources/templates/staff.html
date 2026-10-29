@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Staff')}"></head>
+<body>
+<header th:replace="~{fragments :: header('staff')}"></header>
+<main>
+    <h1>Staff</h1>
+    <p class="sub">Everyone who works for your household.</p>
+
+    <div th:replace="~{fragments :: messages}"></div>
+
+    <section class="card" th:each="r : ${rows}">
+        <div class="row">
+            <div class="person">
+                <div class="avatar" th:text="${#strings.substring(r.worker().name, 0, 1)}">A</div>
+                <div>
+                    <div class="name" th:text="${r.worker().name}">Anita Sharma</div>
+                    <div class="meta">
+                        <span th:text="${r.worker().workerType.name}">Maid</span> ·
+                        <span th:text="${r.payText()}">₹5500.00 monthly salary</span>
+                        <span th:if="${r.worker().phone != null}" th:text="' · ' + ${r.worker().phone}"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="actions">
+                <span class="badge stopped" th:unless="${r.active()}">Not working now</span>
+                <form th:if="${r.active()}" th:action="@{/staff/{id}/stop(id=${r.worker().id})}" method="post"
+                      onsubmit="return confirm('Mark this person as no longer working here?')">
+                    <button class="btn quiet" type="submit">No longer working</button>
+                </form>
+                <form th:unless="${r.active()}" th:action="@{/staff/{id}/restart(id=${r.worker().id})}" method="post">
+                    <button class="btn" type="submit">Works here again</button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <div class="card empty" th:if="${rows.isEmpty()}">No workers yet. Add the first one below.</div>
+
+    <section class="card">
+        <h2>Add a worker</h2>
+        <form th:action="@{/staff}" method="post">
+            <div class="form-grid">
+                <div><label for="name">Name</label><input id="name" type="text" name="name" required maxlength="100"></div>
+                <div>
+                    <label for="typeId">Job</label>
+                    <select id="typeId" name="typeId" required>
+                        <option th:each="t : ${types}" th:value="${t.id}" th:text="${t.name}">Maid</option>
+                    </select>
+                </div>
+                <div><label for="start">Started on</label><input id="start" type="date" name="start" th:value="${today}" required></div>
+                <div><label for="phone">Phone (optional)</label><input id="phone" type="text" name="phone" maxlength="30"></div>
+                <div>
+                    <label for="pay">How are they paid?</label>
+                    <select id="pay" name="pay" required>
+                        <option th:each="c : ${choices}" th:value="${c.name()}" th:text="${c.label}">Monthly salary</option>
+                    </select>
+                </div>
+                <div><label for="rate">Amount in ₹</label><input id="rate" type="text" name="rate" inputmode="decimal" placeholder="e.g. 5500" required></div>
+            </div>
+            <label>Works on</label>
+            <div class="days" style="margin-bottom:1.25rem">
+                <label th:each="d : ${days}">
+                    <input type="checkbox" name="days" th:value="${d.name()}" th:checked="${d.value &lt;= 6}">
+                    <span th:text="${#strings.substring(d.name(), 0, 3)}">MON</span>
+                </label>
+            </div>
+            <button class="btn primary" type="submit">Add worker</button>
+        </form>
+    </section>
+</main>
+</body>
+</html>
