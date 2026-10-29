@@ -112,17 +112,42 @@ public class StaffController {
         return "redirect:/staff";
     }
 
+    /** The last working day defaults to today but can be an earlier date. */
     @PostMapping("/staff/{id}/stop")
-    public String stop(@PathVariable Long id, RedirectAttributes flash) {
-        workerService.deactivate(id, LocalDate.now(clock), null);
-        flash.addFlashAttribute("ok", "Marked as no longer working here.");
+    public String stop(@PathVariable Long id, @RequestParam(required = false) LocalDate last, RedirectAttributes flash) {
+        workerService.deactivate(id, last == null ? LocalDate.now(clock) : last, null);
+        flash.addFlashAttribute("ok", workerService.getWorker(id).getName() + " is marked as no longer working here.");
         return "redirect:/staff";
     }
 
     @PostMapping("/staff/{id}/restart")
     public String restart(@PathVariable Long id, RedirectAttributes flash) {
         workerService.reactivate(id, LocalDate.now(clock));
-        flash.addFlashAttribute("ok", "Welcome back.");
+        flash.addFlashAttribute("ok", workerService.getWorker(id).getName() + " is marked as working again.");
+        return "redirect:/staff";
+    }
+
+    /** A raise (or cut): a new rate from a date. Earlier months keep the old rate. */
+    @PostMapping("/staff/{id}/pay")
+    public String changePay(@PathVariable Long id, @RequestParam String rate, @RequestParam LocalDate from,
+                            RedirectAttributes flash) {
+        PaymentModel model = payService.primaryModelOn(id, from)
+                .orElseThrow(() -> new com.homeexpense.exception.BusinessRuleException("No pay is set for that date."));
+        String unit = model == PaymentModel.PER_UNIT ? "litre" : null;
+        payService.addRate(new NewPayRate(id, model.rateType(), null, null, unit, rate, from, null));
+        flash.addFlashAttribute("ok", "New pay saved from " + from + ".");
+        return "redirect:/staff";
+    }
+
+    /** New weekdays from a date. Days already recorded are never changed. */
+    @PostMapping("/staff/{id}/days")
+    public String changeDays(@PathVariable Long id, @RequestParam LocalDate from,
+                             @RequestParam(required = false) List<DayOfWeek> days, RedirectAttributes flash) {
+        Long taskId = defaultTask().getId();
+        List<NewScheduleEntry> entries = days == null ? List.of()
+                : days.stream().map(day -> NewScheduleEntry.task(day, taskId)).toList();
+        scheduleService.addScheduleVersion(id, from, entries, null);
+        flash.addFlashAttribute("ok", "New weekdays saved from " + from + ".");
         return "redirect:/staff";
     }
 

@@ -24,15 +24,39 @@
             </div>
             <div class="actions">
                 <span class="badge stopped" th:unless="${r.active()}">Not working now</span>
-                <form th:if="${r.active()}" th:action="@{/staff/{id}/stop(id=${r.worker().id})}" method="post"
-                      onsubmit="return confirm('Mark this person as no longer working here?')">
-                    <button class="btn quiet" type="submit">No longer working</button>
-                </form>
                 <form th:unless="${r.active()}" th:action="@{/staff/{id}/restart(id=${r.worker().id})}" method="post">
                     <button class="btn" type="submit">Works here again</button>
                 </form>
             </div>
         </div>
+        <details class="activity" th:if="${r.active()}">
+            <summary>Change pay, weekdays or last day</summary>
+            <form class="actions" th:action="@{/staff/{id}/pay(id=${r.worker().id})}" method="post" style="margin-top:.75rem">
+                <span class="meta">New pay (₹):</span>
+                <input class="small" type="text" name="rate" inputmode="decimal" required aria-label="New pay amount">
+                <span class="meta">from</span>
+                <input class="small" type="date" name="from" th:value="${today}" required aria-label="Starting on">
+                <button class="btn" type="submit">Save pay</button>
+            </form>
+            <form class="actions" th:action="@{/staff/{id}/days(id=${r.worker().id})}" method="post" style="margin-top:.75rem">
+                <span class="meta">Works on:</span>
+                <span class="days">
+                    <label th:each="d : ${days}">
+                        <input type="checkbox" name="days" th:value="${d.name()}">
+                        <span th:text="${#strings.capitalize(#strings.toLowerCase(#strings.substring(d.name(), 0, 3)))}">Mon</span>
+                    </label>
+                </span>
+                <span class="meta">from</span>
+                <input class="small" type="date" name="from" th:value="${today}" required aria-label="Starting on">
+                <button class="btn" type="submit">Save weekdays</button>
+            </form>
+            <form class="actions" th:action="@{/staff/{id}/stop(id=${r.worker().id})}" method="post" style="margin-top:.75rem"
+                  onsubmit="return confirm('Mark this person as no longer working here?')">
+                <span class="meta">Last working day:</span>
+                <input class="small" type="date" name="last" th:value="${today}" required aria-label="Last working day">
+                <button class="btn caution" type="submit">No longer working</button>
+            </form>
+        </details>
     </section>
 
     <div class="card empty" th:if="${rows.isEmpty()}">No workers yet. Add the first one below.</div>

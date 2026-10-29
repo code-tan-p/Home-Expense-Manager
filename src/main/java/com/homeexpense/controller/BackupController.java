@@ -36,7 +36,7 @@ public class BackupController {
     }
 
     /** VACUUM INTO writes a complete copy that already includes the WAL, so one file is a full backup. */
-    @GetMapping("/backup/download")
+    @org.springframework.web.bind.annotation.PostMapping("/backup/download")
     public ResponseEntity<Resource> download() throws IOException {
         Path folder = Files.createTempDirectory("home-expense-backup");
         Path copy = folder.resolve("home-expense-" + LocalDate.now(clock) + ".db");

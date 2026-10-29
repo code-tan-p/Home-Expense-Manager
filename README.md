@@ -24,6 +24,57 @@ it works out what each person has earned in the month, exactly to the paisa.
   is earnings minus that month's payments.
 - Opening Monthly Pay recalculates the month's draft earnings.
 - Restoring a backup is a manual file swap (see the Backup page).
+- Changing pay or weekdays only works from a date with no recorded work or finished earnings after it.
+
+## Design
+
+**Layers** (each only calls the one below it):
+
+```
+browser -> controller (HTTP, form parsing, messages)
+        -> service    (all business rules, @Transactional, audit log)
+        -> repository (Spring Data JPA)
+        -> SQLite     (schema owned by Flyway migrations)
+```
+
+`controller/` has one class per screen plus `WebErrorAdvice`, which turns a
+`BusinessRuleException` into a plain message on the same page. All money maths is in
+`service/EarningsCalculator` using exact fractions (`money/Fraction`), rounded half-up once to
+the paisa.
+
+**Use cases**
+
+| Who | Does | Screen |
+| --- | --- | --- |
+| Homemaker | Add a worker with pay and weekdays | Staff |
+| Homemaker | Change pay or weekdays from a date, or record a last working day | Staff |
+| Homemaker | Record the day: done, litres, hours, leave, holiday, no delivery | Today |
+| Homemaker | Take back a wrong entry | Today (Undo) |
+| Homemaker | See what each person earned, paid so far and still to pay | Monthly Pay |
+| Homemaker | Record a payment | Monthly Pay |
+| Homemaker | Keep a copy of all records | Backup |
+
+**Main tables** (full schema in `src/main/resources/db/migration`):
+
+```mermaid
+erDiagram
+    WORKER_TYPE ||--o{ WORKER : "is a"
+    WORKER ||--o{ EMPLOYMENT_PERIOD : "works during"
+    WORKER ||--o{ WORK_SCHEDULE : "has versions of"
+    WORK_SCHEDULE ||--o{ SCHEDULE_ENTRY : "expects"
+    TASK ||--o{ SCHEDULE_ENTRY : "for"
+    WORKER ||--o{ PAY_ARRANGEMENT : "is paid by"
+    WORKER ||--o{ PAY_RATE : "earns at"
+    WORKER ||--o{ WORK_RECORD : "did"
+    SCHEDULE_ENTRY ||--o{ WORK_RECORD : "confirmed by"
+    WORKER ||--o{ EARNING_RUN : "earned in a month"
+    EARNING_RUN ||--o{ EARNING_LINE : "explained by"
+    WORKER ||--o{ PAYMENT : "was paid"
+    PAYMENT ||--o{ PAYMENT_ALLOCATION : "applied to"
+```
+
+Records are never edited or deleted: a correction voids the old row and adds a linked one, so
+the history always shows what was entered and when.
 
 ## Status
 
