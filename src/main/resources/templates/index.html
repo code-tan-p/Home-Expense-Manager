@@ -83,7 +83,7 @@
             <button class="btn" name="reason" value="HOUSEHOLD_HOLIDAY" type="submit"
                     th:text="${milk ? 'No delivery' : 'Our holiday'}">Our holiday</button>
             <button class="btn" name="reason" value="APPROVED_LEAVE" type="submit" th:unless="${milk}">On leave</button>
-            <button class="btn" name="reason" value="UNAUTHORIZED_ABSENCE" type="submit"
+            <button class="btn caution" name="reason" value="UNAUTHORIZED_ABSENCE" type="submit"
                     title="Didn't come and had not asked. This can reduce pay." th:unless="${milk}">Didn't come</button>
         </form>
 

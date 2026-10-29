@@ -26,13 +26,22 @@
                     <div class="meta" th:text="${r.worker().workerType.name}">Maid</div>
                 </div>
             </div>
-            <div class="total" th:if="${r.earnings() != null}"
-                 th:text="${T(com.homeexpense.money.Money).format(r.earnings().totalPaise())}">₹5500.00</div>
-        </div>
+                    </div>
 
-        <p class="meta" th:if="${r.problem() != null}" th:text="${r.problem()}"></p>
+        <p class="meta" th:if="${r.problem() != null}">
+            We could not work out this month's pay for this person. Check their pay on the Staff page.
+        </p>
 
         <div th:if="${r.earnings() != null}">
+            <p class="meta">
+                Earned <strong th:text="${T(com.homeexpense.money.Money).format(r.earnings().totalPaise())}">₹0.00</strong> ·
+                Paid so far <strong th:text="${T(com.homeexpense.money.Money).format(r.paidPaise())}">₹0.00</strong> ·
+                <span th:if="${r.stillToPayPaise() >= 0}">Still to pay
+                    <strong th:text="${T(com.homeexpense.money.Money).format(r.stillToPayPaise())}">₹0.00</strong></span>
+                <span th:if="${r.stillToPayPaise() < 0}">Paid
+                    <strong th:text="${T(com.homeexpense.money.Money).format(-r.stillToPayPaise())}">₹0.00</strong> in advance</span>
+            </p>
+            <p class="meta" th:if="${!r.earnings().blockers().isEmpty()}"><strong>Before you pay:</strong></p>
             <ul class="plain" th:if="${!r.earnings().blockers().isEmpty()}">
                 <li th:each="b : ${r.earnings().blockers()}"
                     th:text="${#strings.contains(b, ': ') ? #strings.substringBefore(b, ': ') + '. Record them on the Today screen.' : b}">Record the missing days first.</li>
@@ -40,7 +49,8 @@
             <ul class="plain" th:if="${!r.earnings().warnings().isEmpty()}">
                 <li th:each="w : ${r.earnings().warnings()}" th:text="${w}">note</li>
             </ul>
-            <form class="actions activity" th:action="@{/pay/payment}" method="post">
+            <form class="actions activity" th:action="@{/pay/payment}" method="post"
+                  onsubmit="var b=this.querySelector('button');if(b.disabled){return false;}b.disabled=true;return true;">
                 <input type="hidden" name="workerId" th:value="${r.worker().id}">
                 <input type="hidden" name="month" th:value="${month}">
                 <input class="small" type="text" name="amount" inputmode="decimal" placeholder="Amount paid (₹)" required aria-label="Amount paid">
@@ -48,7 +58,7 @@
                     <option th:each="m : ${methods}" th:value="${m.name()}"
                             th:text="${m.name() == 'UPI' ? 'UPI' : (m.name() == 'CASH' ? 'Cash' : 'Bank transfer')}">Cash</option>
                 </select>
-                <button class="btn accent" type="submit">Record payment</button>
+                <button class="btn primary" type="submit">Record payment</button>
             </form>
         </div>
     </section>

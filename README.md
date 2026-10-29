@@ -1,12 +1,29 @@
 # Home Expense Manager
 
-A simple, offline household expense and worker management application for a single
-household on one computer. It tracks household workers, daily work, attendance,
-salaries, advances, payments, monthly settlements, reports and backups.
+A simple, offline household staff and pay application for a single household on one
+computer. Tell it each day what happened (worked, litres of milk, hours, leave, holiday) and
+it works out what each person has earned in the month, exactly to the paisa.
 
-The screens are simple on purpose: **Today** (one tap per worker), **Staff** (add a worker
-with pay and weekdays in one form), **Monthly Pay** (earnings and payments) and **Backup**
-(one-click download).
+## How to use it
+
+1. **Staff**: add each worker once: job, start date, how they are paid (monthly salary, per
+   day, per hour, per litre) and the weekdays they work.
+2. **Today**: each day tap **Done** for each worker. For the milkman type the litres and press
+   **Save litres**, or press **No delivery**. For an hourly worker type the hours. Use
+   **Our holiday**, **On leave** or **Didn't come** when someone did not work. Wrong tap? Press **Undo**.
+3. **Monthly Pay**: see what each person earned, what was paid so far and what is still to pay.
+   Type the amount and press **Record payment**.
+4. **Backup**: download one file with all your records and keep it safe.
+
+## Known limits (version 1)
+
+- One household, one computer, no login: the server only accepts connections from this computer.
+- No screens yet for advances, monthly settlements, deduction decisions, or changing a worker's
+  pay or weekdays after adding them. The services for these exist and are tested.
+- A payment is counted in the month it is dated; it is not matched to a settlement. "Still to pay"
+  is earnings minus that month's payments.
+- Opening Monthly Pay recalculates the month's draft earnings.
+- Restoring a backup is a manual file swap (see the Backup page).
 
 ## Status
 
