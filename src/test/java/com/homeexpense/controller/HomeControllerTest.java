@@ -66,6 +66,29 @@ class HomeControllerTest extends SqliteIntegrationTest {
     }
 
     @Test
+    void paymentIsCountedAsPaidSoFarAndShownOnMonthlyPay() throws Exception {
+        mockMvc.perform(post("/staff")
+                        .param("name", "Sunita Devi").param("typeId", "2").param("start", "2026-03-01")
+                        .param("pay", "MONTHLY_SALARY").param("rate", "3100").param("days", "MONDAY"))
+                .andExpect(status().is3xxRedirection());
+        mockMvc.perform(post("/pay/payment").param("workerId", "1").param("amount", "500")
+                        .param("method", "UPI").param("month", "2026-03"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash()
+                        .attribute("ok", containsString("500.00")));
+        mockMvc.perform(get("/pay").param("month", "2026-03"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Paid so far")))
+                .andExpect(content().string(containsString("₹500.00")));
+    }
+
+    @Test
+    void missingFieldShowsAMessageNotAnErrorPage() throws Exception {
+        mockMvc.perform(post("/pay/payment").param("workerId", "1"))
+                .andExpect(status().is3xxRedirection());
+    }
+
+    @Test
     void referrerFromAnotherSiteIsNeverFollowed() {
         org.junit.jupiter.api.Assertions.assertEquals("/", WebErrorAdvice.samePagePath("https://evil.example"));
         org.junit.jupiter.api.Assertions.assertEquals("/staff", WebErrorAdvice.samePagePath("http://127.0.0.1:8080/staff"));

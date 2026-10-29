@@ -20,7 +20,8 @@ public class WebErrorAdvice {
     }
 
     @ExceptionHandler({DateTimeParseException.class, NumberFormatException.class, ArithmeticException.class,
-            MethodArgumentTypeMismatchException.class})
+            MethodArgumentTypeMismatchException.class,
+            org.springframework.web.bind.MissingServletRequestParameterException.class})
     public String badInput(Exception e, HttpServletRequest request, RedirectAttributes flash) {
         return back("Please check what you typed and try again.", request, flash);
     }

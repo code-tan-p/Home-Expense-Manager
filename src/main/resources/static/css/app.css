@@ -1,9 +1,9 @@
 /* Earthy Minimal palette */
 :root {
     --primary: #2E3A2F;
-    --secondary: #6B7F5B;
+    --secondary: #5A6D4B; /* darkened from #6B7F5B so white text passes WCAG AA */
     --tertiary: #D9C9B2;
-    --accent: #C96F4F;
+    --accent: #B25A3B; /* darkened from #C96F4F for white text contrast */
     --background: #F8F6EE;
     --card: #FFFFFF;
     --muted: #6d6a60;
@@ -62,7 +62,7 @@ h2 { font-size: 1.1rem; margin: 0 0 .75rem; }
 .btn {
     appearance: none; border: 1px solid var(--line); background: var(--card); color: var(--primary);
     padding: .55rem 1rem; border-radius: 10px; font: inherit; font-weight: 600; cursor: pointer;
-    text-decoration: none; display: inline-block; min-height: 2.5rem;
+    text-decoration: none; display: inline-block; min-height: 2.75rem;
 }
 .btn:hover { border-color: var(--secondary); }
 .btn.primary { background: var(--secondary); border-color: var(--secondary); color: #fff; }
@@ -107,3 +107,12 @@ ul.plain { margin: .5rem 0 0; padding-left: 1.2rem; color: var(--muted); font-si
     .btn { flex: 1 1 auto; text-align: center; }
     nav a { padding: .4rem .7rem; }
 }
+
+/* Clearer states and larger tap targets */
+.btn.caution { color: #8c3f22; border-color: var(--accent); }
+nav a { min-height: 2.75rem; display: inline-flex; align-items: center; }
+.days label { position: relative; }
+.days span { min-height: 2.75rem; display: inline-flex; align-items: center; }
+.days input:focus-visible + span { outline: 3px solid var(--primary); }
+nav a:focus-visible { outline: 2px solid var(--tertiary); outline-offset: 2px; }
+input.small { width: 9rem; }
