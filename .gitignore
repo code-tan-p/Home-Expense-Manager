@@ -1,0 +1,30 @@
+# Build output
+target/
+
+# SQLite databases and their WAL/shared-memory side files.
+# The live database is stored under ~/.home-expense-manager, never in this repository.
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+
+# IDE and editor files
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+.factorypath
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Maven Wrapper: keep .mvn/wrapper/maven-wrapper.properties, mvnw and mvnw.cmd committed.
+.mvn/wrapper/maven-wrapper.jar
+/CLAUDE.md
