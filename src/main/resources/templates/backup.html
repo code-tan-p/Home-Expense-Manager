@@ -18,7 +18,18 @@
     </section>
 
     <section class="card">
-        <h2>Restore</h2>
+        <h2>Restore a backup</h2>
+        <p>Choose a backup file you downloaded from this page. It replaces everything after you close and
+            reopen the program. Your current records are kept as a safety copy.</p>
+        <form th:action="@{/backup/restore}" method="post" enctype="multipart/form-data"
+              onsubmit="return confirm('Replace all current records with this backup after the next start?')">
+            <input type="file" name="file" accept=".db" required aria-label="Backup file" style="margin-bottom:.75rem">
+            <button class="btn caution" type="submit">Restore this backup</button>
+        </form>
+    </section>
+
+    <section class="card">
+        <h2>Restore by hand</h2>
         <p class="meta">To restore, stop the app, replace <code>home-expense.db</code> in the folder
             <code>.home-expense-manager</code> inside your user folder with your backup file, and start the app again. Also delete the old <code>home-expense.db-wal</code> and
             <code>home-expense.db-shm</code> files if they are there. Ask a family member to help if unsure.</p>

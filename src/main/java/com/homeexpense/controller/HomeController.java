@@ -86,6 +86,16 @@ public class HomeController {
         return "redirect:/?date=" + date;
     }
 
+    /** The household's answer to "Didn't come": reduce that day's pay, or pay in full. */
+    @PostMapping("/work/deduction")
+    public String deduction(@RequestParam LocalDate date, @RequestParam Long recordId,
+                            @RequestParam com.homeexpense.model.DeductionDecision decision, RedirectAttributes flash) {
+        dailyWorkService.decideDeduction(recordId, decision, null);
+        flash.addFlashAttribute("ok", decision == com.homeexpense.model.DeductionDecision.APPROVED
+                ? "Pay will be reduced for that day." : "That day will be paid in full.");
+        return "redirect:/?date=" + date;
+    }
+
     /** Takes back a wrong entry. The activity becomes "not recorded" again; the history keeps the mistake. */
     @PostMapping("/work/undo")
     public String undo(@RequestParam LocalDate date, @RequestParam Long recordId, RedirectAttributes flash) {

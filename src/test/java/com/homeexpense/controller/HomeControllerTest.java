@@ -49,34 +49,30 @@ class HomeControllerTest extends SqliteIntegrationTest {
 
     @Test
     void milkmanIsAskedForLitresAndNoDeliveryIsOffered() throws Exception {
-        mockMvc.perform(post("/staff")
-                        .param("name", "Ramesh Yadav").param("typeId", "1").param("start", "2026-01-01")
-                        .param("pay", "PER_UNIT").param("rate", "72")
-                        .param("days", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"))
-                .andExpect(status().is3xxRedirection());
-        mockMvc.perform(get("/").param("date", "2026-03-02"))
+        Long id = addWorker("Ramesh Yadav", "PER_UNIT", "72");
+        var day = java.time.LocalDate.of(2026, 5, 18);
+        mockMvc.perform(get("/").param("date", day.toString()))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Litres")))
                 .andExpect(content().string(containsString("No delivery")));
-        mockMvc.perform(post("/work/done").param("date", "2026-03-02").param("workerId", "1").param("entryId", "1")
-                        .param("quantity", "1,5"))
+        Long entry = dailyWorkService.dayView(day).workers().stream().filter(w -> w.worker().getId().equals(id))
+                .findFirst().orElseThrow().expected().getFirst().entry().getId();
+        mockMvc.perform(post("/work/done").param("date", day.toString()).param("workerId", id.toString())
+                        .param("entryId", entry.toString()).param("quantity", "1,5"))
                 .andExpect(status().is3xxRedirection());
-        mockMvc.perform(get("/").param("date", "2026-03-02"))
+        mockMvc.perform(get("/").param("date", day.toString()))
                 .andExpect(content().string(containsString("1.50 litres")));
     }
 
     @Test
     void paymentIsCountedAsPaidSoFarAndShownOnMonthlyPay() throws Exception {
-        mockMvc.perform(post("/staff")
-                        .param("name", "Sunita Devi").param("typeId", "2").param("start", "2026-03-01")
-                        .param("pay", "MONTHLY_SALARY").param("rate", "3100").param("days", "MONDAY"))
-                .andExpect(status().is3xxRedirection());
-        mockMvc.perform(post("/pay/payment").param("workerId", "1").param("amount", "500")
-                        .param("method", "UPI").param("month", "2026-03"))
+        Long id = addWorker("Pay Paula", "MONTHLY_SALARY", "3100");
+        mockMvc.perform(post("/pay/payment").param("workerId", id.toString()).param("amount", "500")
+                        .param("method", "UPI").param("month", "2026-05"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash()
                         .attribute("ok", containsString("500.00")));
-        mockMvc.perform(get("/pay").param("month", "2026-03"))
+        mockMvc.perform(get("/pay").param("month", "2026-05"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Paid so far")))
                 .andExpect(content().string(containsString("₹500.00")));
@@ -150,6 +146,78 @@ class HomeControllerTest extends SqliteIntegrationTest {
     }
 
     @Test
+    void postFromAnotherWebsiteIsRefused() throws Exception {
+        mockMvc.perform(post("/work/all-present").param("date", "2026-05-13").header("Origin", "http://evil.example"))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(post("/work/all-present").param("date", "2026-05-13").header("Origin", "http://localhost"))
+                .andExpect(status().is3xxRedirection());
+    }
+
+    @Test
+    void restoreRejectsAFileThatIsNotABackup() throws Exception {
+        var notABackup = new org.springframework.mock.web.MockMultipartFile("file", "x.db", "application/octet-stream",
+                "this is not sqlite".getBytes());
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart("/backup/restore")
+                        .file(notABackup).header("Referer", "http://localhost/backup"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash()
+                        .attribute("error", containsString("not a Home Expense Manager backup")));
+    }
+
+    @Test
+    void advanceIsShownAsMoneyToTakeBack() throws Exception {
+        Long id = addWorker("Advance Asha", "MONTHLY_SALARY", "4000");
+        mockMvc.perform(post("/pay/advance").param("workerId", id.toString()).param("amount", "700")
+                        .param("method", "CASH").param("month", "2026-05"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash()
+                        .attribute("ok", containsString("700.00")));
+        mockMvc.perform(get("/pay").param("month", "2026-05"))
+                .andExpect(content().string(containsString("Advance to take back from later pay")));
+    }
+
+    @Test
+    void unauthorizedAbsenceCanBeDecidedOnTheTodayScreen() throws Exception {
+        Long id = addWorker("Decide Dev", "MONTHLY_SALARY", "3000");
+        var day = java.time.LocalDate.of(2026, 5, 14);
+        mockMvc.perform(post("/work/absent").param("date", day.toString()).param("workerId", id.toString())
+                .param("reason", "UNAUTHORIZED_ABSENCE"));
+        mockMvc.perform(get("/").param("date", day.toString()))
+                .andExpect(content().string(containsString("Reduce pay for this day?")));
+        Long record = dailyWorkService.dayView(day).workers().stream().filter(w -> w.worker().getId().equals(id))
+                .findFirst().orElseThrow().expected().getFirst().record().getId();
+        mockMvc.perform(post("/work/deduction").param("date", day.toString()).param("recordId", record.toString())
+                        .param("decision", "WAIVED"))
+                .andExpect(status().is3xxRedirection());
+        mockMvc.perform(get("/").param("date", day.toString()))
+                .andExpect(content().string(containsString("Paid in full")));
+    }
+
+    @Test
+    void finishedMonthCanBeClosedWithAdvanceAndPaymentApplied() throws Exception {
+        mockMvc.perform(post("/staff").param("name", "Close Chitra").param("typeId", "1").param("start", "2026-04-01")
+                .param("pay", "MONTHLY_SALARY").param("rate", "3000")
+                .param("days", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"));
+        Long id = workerService.listAllWorkers().stream().filter(w -> w.getName().equals("Close Chitra"))
+                .findFirst().orElseThrow().getId();
+        for (int day = 1; day <= 30; day++) {
+            mockMvc.perform(post("/work/all-present").param("date", java.time.LocalDate.of(2026, 4, day).toString()));
+        }
+        mockMvc.perform(post("/pay/advance").param("workerId", id.toString()).param("amount", "500")
+                .param("method", "CASH").param("month", "2026-04"));
+        mockMvc.perform(post("/pay/payment").param("workerId", id.toString()).param("amount", "1000")
+                .param("method", "UPI").param("month", "2026-04"));
+
+        mockMvc.perform(post("/pay/close").param("workerId", id.toString()).param("month", "2026-04"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash()
+                        // The advance is dated today, after April ended, so it is taken back from a later month.
+                        .attribute("ok", containsString("Still to pay: ₹2000.00")));
+        mockMvc.perform(get("/pay").param("month", "2026-04"))
+                .andExpect(content().string(containsString("Month closed")));
+    }
+
+    @Test
     void missingFieldShowsAMessageNotAnErrorPage() throws Exception {
         mockMvc.perform(post("/pay/payment").param("workerId", "1"))
                 .andExpect(status().is3xxRedirection());
@@ -163,7 +231,7 @@ class HomeControllerTest extends SqliteIntegrationTest {
 
     @Test
     void badInputShowsAMessageInsteadOfAnErrorPage() throws Exception {
-        mockMvc.perform(post("/staff").header("Referer", "/staff")
+        mockMvc.perform(post("/staff").header("Referer", "http://localhost/staff")
                         .param("name", " ").param("typeId", "1").param("start", "2026-01-01")
                         .param("pay", "MONTHLY_SALARY").param("rate", "5500"))
                 .andExpect(status().is3xxRedirection())

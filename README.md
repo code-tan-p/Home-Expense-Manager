@@ -12,19 +12,23 @@ it works out what each person has earned in the month, exactly to the paisa.
    **Save litres**, or press **No delivery**. For an hourly worker type the hours. Use
    **Our holiday**, **On leave** or **Didn't come** when someone did not work. Wrong tap? Press **Undo**.
 3. **Monthly Pay**: see what each person earned, what was paid so far and what is still to pay.
-   Type the amount and press **Record payment**.
-4. **Backup**: download one file with all your records and keep it safe.
+   Type the amount and press **Record payment**. **Give an advance** for money ahead of pay.
+   After a month ends, press **Close this month**. If someone did not come, answer **Reduce pay for
+   this day?** on the Today screen first.
+4. **Backup**: download one file with all your records and keep it safe. To go back to a backup,
+   choose the file on the same page and start the program again.
 
 ## Known limits (version 1)
 
-- One household, one computer, no login: the server only accepts connections from this computer.
-- No screens yet for advances, monthly settlements, deduction decisions, or changing a worker's
-  pay or weekdays after adding them. The services for these exist and are tested.
-- A payment is counted in the month it is dated; it is not matched to a settlement. "Still to pay"
-  is earnings minus that month's payments.
-- Opening Monthly Pay recalculates the month's draft earnings.
-- Restoring a backup is a manual file swap (see the Backup page).
+- One household, one computer, no login: the server only accepts connections from this computer,
+  and it refuses a form post that came from another website (`SameOriginFilter`).
+- Closing a month leaves any unpaid amount as "still to pay" (it is not carried to the next month),
+  and turns any overpayment into an advance. Reopening a closed month, corrections to payments and
+  settlement adjustments have no screens yet; the services exist and are tested.
+- An advance is taken back from the next month closed after it was given, never from an earlier month.
 - Changing pay or weekdays only works from a date with no recorded work or finished earnings after it.
+- Restoring a backup takes effect the next time the program starts. The records it replaced are kept
+  as `home-expense.db.before-restore`.
 
 ## Design
 

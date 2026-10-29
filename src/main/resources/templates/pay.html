@@ -41,6 +41,14 @@
                 <span th:if="${r.stillToPayPaise() < 0}">Paid
                     <strong th:text="${T(com.homeexpense.money.Money).format(-r.stillToPayPaise())}">₹0.00</strong> in advance</span>
             </p>
+            <p class="meta" th:if="${r.earnings().finalized()}"><span class="badge done">Month closed</span></p>
+            <form th:if="${ended and !r.earnings().finalized() and r.earnings().blockers().isEmpty()}"
+                  th:action="@{/pay/close}" method="post" class="actions"
+                  onsubmit="return confirm('Close this month for this person? Their days for the month can no longer be changed.')">
+                <input type="hidden" name="workerId" th:value="${r.worker().id}">
+                <input type="hidden" name="month" th:value="${month}">
+                <button class="btn" type="submit">Close this month</button>
+            </form>
             <p class="meta" th:if="${!r.earnings().blockers().isEmpty()}"><strong>Before you pay:</strong></p>
             <ul class="plain" th:if="${!r.earnings().blockers().isEmpty()}">
                 <li th:each="b : ${r.earnings().blockers()}"
@@ -60,6 +68,24 @@
                 </select>
                 <button class="btn primary" type="submit">Record payment</button>
             </form>
+            <p class="meta" th:if="${r.advancePaise() > 0}">
+                Advance to take back from later pay:
+                <strong th:text="${T(com.homeexpense.money.Money).format(r.advancePaise())}">₹0.00</strong>
+            </p>
+            <details class="activity">
+                <summary>Give an advance (money ahead of pay)</summary>
+                <form class="actions" th:action="@{/pay/advance}" method="post" style="margin-top:.75rem"
+                      onsubmit="var b=this.querySelector('button');if(b.disabled){return false;}b.disabled=true;return true;">
+                    <input type="hidden" name="workerId" th:value="${r.worker().id}">
+                    <input type="hidden" name="month" th:value="${month}">
+                    <input class="small" type="text" name="amount" inputmode="decimal" placeholder="Advance (₹)" required aria-label="Advance amount">
+                    <select name="method" aria-label="How was it paid" style="width:auto">
+                        <option th:each="m : ${methods}" th:value="${m.name()}"
+                                th:text="${m.name() == 'UPI' ? 'UPI' : (m.name() == 'CASH' ? 'Cash' : 'Bank transfer')}">Cash</option>
+                    </select>
+                    <button class="btn" type="submit">Give advance</button>
+                </form>
+            </details>
         </div>
     </section>
 </main>
