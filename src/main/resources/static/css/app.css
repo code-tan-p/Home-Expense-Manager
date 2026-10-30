@@ -83,7 +83,7 @@ h2 { font-size: 1.1rem; margin: 0 0 .75rem; }
 .flash.error { background: #f6e0d6; color: #8c3f22; }
 
 label { display: block; font-weight: 600; font-size: .9rem; margin-bottom: .25rem; }
-input[type=text], input[type=email], input:not([type]), input[type=password], input[type=date], input[type=number], input[type=month], select {
+input[type=text], input[type=email], input[type=search], input:not([type]), input[type=password], input[type=date], input[type=number], input[type=month], select {
     width: 100%; padding: .6rem .75rem; border: 1px solid var(--line); border-radius: 10px;
     font: inherit; background: #fff; color: var(--primary); min-height: 2.6rem;
 }
@@ -191,3 +191,33 @@ main p a:not(.btn):hover, main li a:not(.btn):hover { color: var(--primary); }
 
 .chips { display: inline-flex; gap: .35rem; flex-wrap: wrap; }
 .btn.chip { padding: .35rem .7rem; min-height: 2.75rem; }
+
+/* Dark mode: follows the phone or computer setting. */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --primary: #ece9df;
+        --secondary: #7f9a6a;
+        --tertiary: #4a5a48;
+        --accent: #e08a68;
+        --background: #181d19;
+        --card: #232b25;
+        --muted: #a7a597;
+        --line: #38433a;
+    }
+    .topbar { background: #0f1310; color: #ece9df; }
+    nav a { color: #ece9df; }
+    nav a.active { background: #4a5a48; color: #fff; }
+    .btn.primary, .btn.accent, .chip.active, .days input:checked + span, .avatar { color: #10150f; }
+    input[type=text], input[type=email], input:not([type]), input[type=password], input[type=date], input[type=number], input[type=month], select,
+    .days span { background: #1c231d; color: var(--primary); border-color: var(--line); }
+    .badge.done, .flash.ok, .cal-cell.came, .dot.came { background: #2c3d2c; color: var(--primary); border-color: #3f5a3f; }
+    .badge.wait, .flash.error, .cal-cell.absent, .dot.absent { background: #4a2d24; color: #f2c1ad; border-color: #6b3d2e; }
+    .badge.off, .cal-cell.leave, .dot.leave { background: #3a463b; color: var(--primary); }
+    .cal-cell.part-day { background: #2f3b2d; border-color: #3f5a3f; }
+    .cal-cell.holiday, .cal-cell.no-delivery, .dot.holiday, .dot.no-delivery { background: #3b3a2d; border-color: #5a573f; }
+    .cal-cell.day-off, .dot.day-off, .flash.notice { background: #1f2621; color: var(--muted); }
+    .cal-cell.not-recorded, .dot.not-recorded { background: #232b25; }
+    .btn { color: var(--primary); }
+    .btn.caution { color: #f2c1ad; }
+    a { color: #b9d3a3; }
+}

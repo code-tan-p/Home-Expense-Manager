@@ -58,8 +58,8 @@
         </form>
     </section>
 
-    <section class="card" th:if="${view != null and !settled}">
-        <h2>Add a correction</h2>
+    <section class="card" th:if="${!settled}">
+        <h2>Bonus, deduction or correction</h2>
         <p class="meta">A bonus, a deduction or a fix for this month. It shows in the list above with your reason.</p>
         <form th:action="@{/settlement/{id}/correction(id=${worker.id})}" method="post" class="actions">
             <input type="hidden" name="month" th:value="${month}">

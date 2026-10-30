@@ -9,7 +9,10 @@
 
     <div th:replace="~{fragments :: messages}"></div>
 
-    <section class="card" th:each="r : ${rows}">
+    <p class="noprint" th:if="${rows.size() > 3}">
+        <input type="search" id="staffSearch" placeholder="Search staff by name" aria-label="Search staff by name" autocomplete="off">
+    </p>
+    <section class="card person-card" th:each="r : ${rows}" th:attr="data-name=${#strings.toLowerCase(r.worker().name)}">
         <div class="row">
             <div class="person">
                 <div class="avatar" th:text="${#strings.substring(r.worker().name, 0, 1)}">A</div>
@@ -124,6 +127,18 @@
             })();
         </script>
     </section>
+<script>
+        (function () {
+            var box = document.getElementById('staffSearch');
+            if (!box) { return; }
+            box.addEventListener('input', function () {
+                var q = box.value.trim().toLowerCase();
+                document.querySelectorAll('.person-card').forEach(function (card) {
+                    card.style.display = card.getAttribute('data-name').indexOf(q) >= 0 ? '' : 'none';
+                });
+            });
+        })();
+    </script>
 </main>
 </body>
 </html>

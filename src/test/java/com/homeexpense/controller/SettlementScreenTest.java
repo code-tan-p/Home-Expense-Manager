@@ -35,6 +35,9 @@ class SettlementScreenTest extends SqliteIntegrationTest {
         mockMvc.perform(get("/settlement/" + id).param("month", "2026-03")).andExpect(status().isOk())
                 .andExpect(content().string(containsString("has not been closed yet")));
 
+        mockMvc.perform(post("/settlement/" + id + "/correction").param("month", "2026-03").param("direction", "ADD")
+                        .param("amount", "200").param("reason", "festival bonus"))
+                .andExpect(flash().attribute("ok", containsString("Correction added")));
         mockMvc.perform(post("/pay/payment").param("workerId", id.toString()).param("amount", "100").param("method", "CASH")
                 .param("month", "2026-03"));
         mockMvc.perform(post("/pay/close").param("workerId", id.toString()).param("month", "2026-03"))
@@ -43,6 +46,7 @@ class SettlementScreenTest extends SqliteIntegrationTest {
         mockMvc.perform(get("/settlement/" + id).param("month", "2026-03")).andExpect(status().isOk())
                 .andExpect(content().string(containsString("Settled")))
                 .andExpect(content().string(containsString("Amount to pay")))
+                .andExpect(content().string(containsString("festival bonus")))
                 .andExpect(content().string(containsString("Reopen this month")));
 
         mockMvc.perform(post("/settlement/" + id + "/reopen").header("Referer", "http://localhost/settlement/" + id)
