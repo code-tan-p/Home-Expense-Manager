@@ -330,7 +330,11 @@ public class EarningsService {
     }
 
     /** What a month would come to, worked out now and not saved. */
-    public record Preview(long totalPaise, List<String> blockers, List<String> warnings, boolean finalized) {
+    public record Preview(long totalPaise, List<String> blockers, List<String> warnings, boolean finalized, List<Line> lines) {
+    }
+
+    /** One explained line of a month: the day it is for (may be empty), the explanation, and the amount (null while it needs review). */
+    public record Line(java.time.LocalDate date, String text, Long amountPaise) {
     }
 
     /**
@@ -344,7 +348,8 @@ public class EarningsService {
         EarningRun run = runRepository.findActive(workerId, month.atDay(1)).orElse(null);
         if (run != null && !run.isDraft()) {
             EarningsResult saved = result(run, List.of());
-            return new Preview(saved.totalPaise(), saved.blockers(), saved.warnings(), true);
+            return new Preview(saved.totalPaise(), saved.blockers(), saved.warnings(), true,
+                    saved.lines().stream().map(l -> new Line(l.getWorkDate(), l.getExplanation(), l.getAmountPaise())).toList());
         }
         EarningsCalculator.Calculation calc = calculator.calculate(worker, month);
         long total = 0;
@@ -353,7 +358,8 @@ public class EarningsService {
                 total = Math.addExact(total, line.amountPaise);
             }
         }
-        return new Preview(total, calc.blockers(), calc.warnings(), false);
+        return new Preview(total, calc.blockers(), calc.warnings(), false,
+                calc.lines().stream().map(l -> new Line(l.date, l.explanation, l.amountPaise)).toList());
     }
 
     // ------------------------------------------------------------------ helpers

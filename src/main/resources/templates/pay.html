@@ -65,6 +65,17 @@
                 <strong th:text="${r.summary().litres} + ' litres'">0 litres</strong>
                 on <span th:text="${r.deliveryDays()}">0</span> delivery days. Pay is the litres times the price per litre.
             </p>
+            <details class="activity" th:if="${!r.earnings().lines().isEmpty()}">
+                <summary>How this was worked out</summary>
+                <table class="breakdown">
+                    <tr th:each="line : ${r.earnings().lines()}">
+                        <td th:text="${line.date() != null} ? ${#temporals.format(line.date(), 'd MMM')} : ''">1 Jan</td>
+                        <td th:text="${line.text()}">Explanation</td>
+                        <td class="num" th:text="${line.amountPaise() != null} ? ${T(com.homeexpense.money.Money).format(line.amountPaise())} : 'needs a decision'">₹0.00</td>
+                    </tr>
+                </table>
+                <p class="meta">Total <strong th:text="${T(com.homeexpense.money.Money).format(r.earnings().totalPaise())}">₹0.00</strong></p>
+            </details>
             <p class="meta" th:if="${r.earnings().finalized()}"><span class="badge done">Month closed</span></p>
             <form th:if="${ended and !r.earnings().finalized() and r.earnings().blockers().isEmpty()}"
                   th:action="@{/pay/close}" method="post" class="actions">

@@ -76,7 +76,8 @@ class CalendarTest extends SqliteIntegrationTest {
                 .andExpect(content().string(containsString("30 Apr 2026")))
                 .andExpect(content().string(containsString("6.5 litres")))
                 .andExpect(content().string(containsString(">3</span> delivery days")))
-                .andExpect(content().string(containsString("See calendar")));
+                .andExpect(content().string(containsString("See calendar")))
+                .andExpect(content().string(containsString("How this was worked out")));
     }
 
     @Test

@@ -171,3 +171,7 @@ main p a:not(.btn):hover, main li a:not(.btn):hover { color: var(--primary); }
 .cal-cell.absent::after { content: "¹5"; font-size: .7rem; }
 .cal-cell.leave::after { content: "L"; font-size: .65rem; font-weight: 700; }
 .cal-cell.holiday::after, .cal-cell.no-delivery::after { content: "H"; font-size: .65rem; font-weight: 700; }
+
+.breakdown { width: 100%; border-collapse: collapse; margin: .5rem 0; font-size: .9rem; }
+.breakdown td { padding: .3rem .4rem; border-bottom: 1px solid var(--tertiary); vertical-align: top; }
+.breakdown .num { text-align: right; white-space: nowrap; font-weight: 600; }
