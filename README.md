@@ -29,6 +29,9 @@ it works out what each person has earned in the month, exactly to the paisa.
 - Changing pay or weekdays only works from a date with no recorded work or finished earnings after it.
 - Restoring a backup takes effect the next time the program starts. The records it replaced are kept
   as `home-expense.db.before-restore`.
+- Leave rule (as in the original project): approved leave is unpaid for monthly-salary staff
+  (one day's pay is taken off); a household holiday is paid. Pinned by `BreakItTest`.
+- Opening Monthly Pay recalculates in memory only; nothing is saved until a month is closed.
 
 ## Design
 
@@ -136,12 +139,55 @@ the live household database.
 
 ## Run
 
+**Easiest:** double-click `run.bat` (Windows) or run `./run.sh` (Mac/Linux). The first start builds the
+program (about a minute), then your browser opens at <http://127.0.0.1:8080/>. Close the window to stop it.
+
+**For development:** `./mvnw spring-boot:run`, or build once with `./mvnw -DskipTests package` and run
+`java -jar target/home-expense-manager.jar`.
+
+The server only accepts connections from this computer. There is no login in version 1.
+
+## Run with Docker
+
 ```bash
-./mvnw spring-boot:run
+docker compose up -d
 ```
 
-Then open <http://127.0.0.1:8080/> in a browser. The server only accepts connections
-from this computer (there is no login in version 1).
+Open <http://localhost:8080/>. Records are kept in the Docker volume `home-expense-data`, so they survive
+restarts and upgrades. To upgrade: `git pull`, then `docker compose up -d --build`. Check that it is
+healthy with `docker compose ps` or <http://localhost:8080/actuator/health>.
+
+The compose file publishes the port to this computer only. If you open it to other devices, put a
+password in front of it first (for example a reverse proxy with basic authentication), because the program
+has no login of its own. Keep the data volume on a local disk, not a network drive (SQLite needs a real
+local file system).
+
+## Settings
+
+Set these as environment variables (or as `--name=value` options):
+
+| Variable | Meaning | Default |
+| --- | --- | --- |
+| `HOME_EXPENSE_DATA_DIR` | Folder holding all records | `~/.home-expense-manager` |
+| `HOME_EXPENSE_TIMEZONE` | Time zone for "today" and month ends, for example `Asia/Kolkata` | this computer's zone |
+| `SERVER_ADDRESS` | Address to listen on. `0.0.0.0` lets other devices connect | `127.0.0.1` |
+| `SERVER_PORT` | Port | `8080` |
+
+## Backups
+
+- **By hand:** the **Backup** screen downloads one file with everything. Keep copies away from this computer.
+- **Automatic:** every day at 02:00 the program saves a copy in `<data folder>/backups` and keeps the
+  newest 14. These are on the same computer, so they protect against mistakes, not against losing the
+  computer.
+- **Restore:** choose a downloaded backup on the Backup screen, then close and start the program again.
+  The file is checked first (a damaged file or one from a newer version is refused).
+
+## Testing
+
+`./mvnw clean verify` runs every test. `BreakItTest` tries to break the website (bad numbers, extreme dates,
+double clicks, hostile text, damaged backups, forged posts); a `.github/workflows/build.yml` workflow runs the
+same on every push. The limits it enforces are in `controller/InputRules.java`: litres up to 1,000 a day,
+hours up to 24, amounts up to ₹10,00,000, dates from 2000 to one year ahead.
 
 ## Where data is stored
 
