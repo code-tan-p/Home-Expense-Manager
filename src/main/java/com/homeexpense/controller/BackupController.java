@@ -32,6 +32,7 @@ public class BackupController {
     @GetMapping("/backup")
     public String backup(Model model) {
         model.addAttribute("page", "backup");
+        model.addAttribute("automatic", backupService.automaticBackups());
         return "backup";
     }
 
@@ -43,6 +44,17 @@ public class BackupController {
                 .contentLength(copy.length)
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         ContentDisposition.attachment().filename(backupService.downloadName()).build().toString())
+                .body(new ByteArrayResource(copy));
+    }
+
+    /** One of the daily automatic backups, as a download. */
+    @GetMapping("/backup/automatic/{name}")
+    public ResponseEntity<Resource> automatic(@org.springframework.web.bind.annotation.PathVariable String name) throws IOException {
+        byte[] copy = backupService.automaticBackup(name);
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .contentLength(copy.length)
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment().filename(name).build().toString())
                 .body(new ByteArrayResource(copy));
     }
 

@@ -172,6 +172,43 @@ public class BackupService {
         }
     }
 
+    /** One automatic backup file of the signed-in household. */
+    public record AutomaticBackup(String name, long sizeBytes, java.time.Instant savedAt) {
+    }
+
+    private static final Pattern AUTOMATIC_NAME = Pattern.compile("home-expense-\\d{4}-\\d{2}-\\d{2}\\.db");
+
+    /** The automatic backups of the signed-in household, newest first. */
+    public List<AutomaticBackup> automaticBackups() {
+        Path folder = dataDir.resolve("backups").resolve(String.valueOf(households.current()));
+        if (!Files.isDirectory(folder)) {
+            return List.of();
+        }
+        try (Stream<Path> files = Files.list(folder)) {
+            return files.filter(p -> AUTOMATIC_NAME.matcher(p.getFileName().toString()).matches()).sorted().map(p -> {
+                try {
+                    return new AutomaticBackup(p.getFileName().toString(), Files.size(p), Files.getLastModifiedTime(p).toInstant());
+                } catch (IOException e) {
+                    throw new java.io.UncheckedIOException(e);
+                }
+            }).sorted((a, b) -> b.name().compareTo(a.name())).toList();
+        } catch (IOException | java.io.UncheckedIOException e) {
+            return List.of();
+        }
+    }
+
+    /** The bytes of one automatic backup. Only names this program wrote are accepted, so no other file can be asked for. */
+    public byte[] automaticBackup(String name) throws IOException {
+        if (name == null || !AUTOMATIC_NAME.matcher(name).matches()) {
+            throw new BusinessRuleException("That backup was not found.");
+        }
+        Path file = dataDir.resolve("backups").resolve(String.valueOf(households.current())).resolve(name);
+        if (!Files.isRegularFile(file)) {
+            throw new BusinessRuleException("That backup was not found.");
+        }
+        return Files.readAllBytes(file);
+    }
+
     private void writeCopy(Path target) {
         jdbc.execute("VACUUM INTO '" + target.toAbsolutePath().toString().replace("'", "''") + "'");
     }
