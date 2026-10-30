@@ -99,8 +99,17 @@ public class StaffController {
     public String add(@RequestParam String name, @RequestParam Long typeId, @RequestParam LocalDate start,
                       @RequestParam(required = false) String phone, @RequestParam PayChoice pay, @RequestParam String rate,
                       @RequestParam(required = false) List<DayOfWeek> days, RedirectAttributes flash) {
-        com.homeexpense.money.Money.parsePositiveRupees(rate); // reject a bad amount before anything is saved
-        Worker worker = workerService.createWorker(new NewWorker(name, typeId, phone, null, start)).worker();
+        // Reject anything wrong before anything is saved.
+        name = InputRules.requireName(name);
+        phone = InputRules.optionalPhone(phone);
+        rate = InputRules.requireRupees(rate, "the pay amount");
+        InputRules.requireDate(start, LocalDate.now(clock));
+        if (days == null || days.isEmpty()) {
+            throw new com.homeexpense.exception.BusinessRuleException(
+                    "Tick at least one weekday, otherwise this person will never show up on the Today screen.");
+        }
+        var created = workerService.createWorker(new NewWorker(name, typeId, phone, null, start));
+        Worker worker = created.worker();
         payService.setPrimaryModel(worker.getId(), pay.model, start);
         String unit = pay.model == PaymentModel.PER_UNIT ? "litre" : null;
         payService.addRate(new NewPayRate(worker.getId(), pay.model.rateType(), null, null, unit, rate, start, null));
@@ -109,14 +118,19 @@ public class StaffController {
             List<NewScheduleEntry> entries = days.stream().map(day -> NewScheduleEntry.task(day, taskId)).toList();
             scheduleService.addScheduleVersion(worker.getId(), start, entries, null);
         }
-        flash.addFlashAttribute("ok", name.strip() + " was added.");
+        flash.addFlashAttribute("ok", name + " was added.");
+        if (!created.warnings().isEmpty()) {
+            flash.addFlashAttribute("error", "Another worker already has this name. Check this is not a duplicate. "
+                    + "Two people with one name are easy to mix up.");
+        }
         return "redirect:/staff";
     }
 
     /** The last working day defaults to today but can be an earlier date. */
     @PostMapping("/staff/{id}/stop")
     public String stop(@PathVariable Long id, @RequestParam(required = false) LocalDate last, RedirectAttributes flash) {
-        workerService.deactivate(id, last == null ? LocalDate.now(clock) : last, null);
+        LocalDate lastDay = last == null ? LocalDate.now(clock) : InputRules.requireDate(last, LocalDate.now(clock));
+        workerService.deactivate(id, lastDay, null);
         flash.addFlashAttribute("ok", workerService.getWorker(id).getName() + " is marked as no longer working here.");
         return "redirect:/staff";
     }
@@ -132,6 +146,8 @@ public class StaffController {
     @PostMapping("/staff/{id}/pay")
     public String changePay(@PathVariable Long id, @RequestParam String rate, @RequestParam LocalDate from,
                             RedirectAttributes flash) {
+        InputRules.requireDate(from, LocalDate.now(clock));
+        rate = InputRules.requireRupees(rate, "the new pay amount");
         PaymentModel model = payService.primaryModelOn(id, from)
                 .orElseThrow(() -> new com.homeexpense.exception.BusinessRuleException("No pay is set for that date."));
         String unit = model == PaymentModel.PER_UNIT ? "litre" : null;
@@ -144,9 +160,13 @@ public class StaffController {
     @PostMapping("/staff/{id}/days")
     public String changeDays(@PathVariable Long id, @RequestParam LocalDate from,
                              @RequestParam(required = false) List<DayOfWeek> days, RedirectAttributes flash) {
+        InputRules.requireDate(from, LocalDate.now(clock));
+        if (days == null || days.isEmpty()) {
+            throw new com.homeexpense.exception.BusinessRuleException(
+                    "Tick at least one weekday. To stop someone working, use 'No longer working'.");
+        }
         Long taskId = defaultTask().getId();
-        List<NewScheduleEntry> entries = days == null ? List.of()
-                : days.stream().map(day -> NewScheduleEntry.task(day, taskId)).toList();
+        List<NewScheduleEntry> entries = days.stream().map(day -> NewScheduleEntry.task(day, taskId)).toList();
         scheduleService.addScheduleVersion(id, from, entries, null);
         flash.addFlashAttribute("ok", "New weekdays saved from " + from + ".");
         return "redirect:/staff";
@@ -179,6 +199,14 @@ public class StaffController {
     }
 
     private static String describe(PayRate rate) {
-        return com.homeexpense.money.Money.format(rate.getAmountPaise()) + " " + rate.getRateType().name().toLowerCase().replace('_', ' ');
+        String per = switch (rate.getRateType()) {
+            case MONTHLY_SALARY -> "a month";
+            case PER_DAY -> "a day";
+            case HOURLY -> "an hour";
+            case PER_UNIT -> "per litre (pay depends on litres delivered)";
+            case PER_TASK -> "per task";
+            default -> rate.getRateType().name().toLowerCase().replace('_', ' ');
+        };
+        return com.homeexpense.money.Money.format(rate.getAmountPaise()) + " " + per;
     }
 }

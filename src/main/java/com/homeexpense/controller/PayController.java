@@ -36,7 +36,7 @@ public class PayController {
 
     /** One worker's month. {@code paidPaise} counts payments dated inside the month. */
     public record PayRow(Worker worker, EarningsService.Preview earnings, String problem, long paidPaise,
-                         long advancePaise) {
+                         long advancePaise, Long litresMilli, int deliveryDays) {
 
         /** Still to pay, or negative when more than the earnings so far was paid. */
         public long stillToPayPaise() {
@@ -47,6 +47,8 @@ public class PayController {
     private final WorkerService workerService;
     private final EarningsService earningsService;
     private final PaymentService paymentService;
+    private final com.homeexpense.service.DailyWorkService dailyWorkService;
+    private final com.homeexpense.service.PayService payService;
     private final com.homeexpense.service.SettlementService settlementService;
     private final PaymentRepository paymentRepository;
     private final PaymentVoidRepository paymentVoidRepository;
@@ -54,7 +56,11 @@ public class PayController {
 
     public PayController(WorkerService workerService, EarningsService earningsService, PaymentService paymentService,
                          com.homeexpense.service.SettlementService settlementService,
+                         com.homeexpense.service.DailyWorkService dailyWorkService,
+                         com.homeexpense.service.PayService payService,
                          PaymentRepository paymentRepository, PaymentVoidRepository paymentVoidRepository, Clock clock) {
+        this.dailyWorkService = dailyWorkService;
+        this.payService = payService;
         this.workerService = workerService;
         this.earningsService = earningsService;
         this.paymentService = paymentService;
@@ -66,7 +72,7 @@ public class PayController {
 
     @GetMapping("/pay")
     public String pay(@RequestParam(required = false) YearMonth month, Model model) {
-        YearMonth shown = month == null ? YearMonth.now(clock) : month;
+        YearMonth shown = month == null ? YearMonth.now(clock) : InputRules.requireMonth(month, LocalDate.now(clock));
         List<PayRow> rows = new ArrayList<>();
         for (Worker worker : workerService.listAllWorkers()) {
             if (!workerService.isEmployedOn(worker.getId(), shown.atEndOfMonth())
@@ -76,10 +82,24 @@ public class PayController {
             long paid = paidInMonth(worker.getId(), shown);
             long advance = settlementService.advances(worker.getId()).stream()
                     .mapToLong(FinanceDtos.AdvanceBalance::balancePaise).sum();
+            boolean milk = payService.primaryModelOn(worker.getId(), shown.atEndOfMonth())
+                    .or(() -> payService.primaryModelOn(worker.getId(), shown.atDay(1)))
+                    .filter(m -> m == com.homeexpense.model.PaymentModel.PER_UNIT).isPresent();
+            long litres = 0;
+            int days = 0;
+            if (milk) {
+                for (var rec : dailyWorkService.history(worker.getId(), shown.atDay(1), shown.atEndOfMonth())) {
+                    if (rec.isCurrent() && rec.getActualQuantityMilli() != null && rec.getActualQuantityMilli() > 0) {
+                        litres += rec.getActualQuantityMilli();
+                        days++;
+                    }
+                }
+            }
             try {
-                rows.add(new PayRow(worker, earningsService.preview(worker.getId(), shown), null, paid, advance));
+                rows.add(new PayRow(worker, earningsService.preview(worker.getId(), shown), null, paid, advance,
+                        milk ? litres : null, days));
             } catch (BusinessRuleException e) {
-                rows.add(new PayRow(worker, null, e.getMessage(), paid, advance));
+                rows.add(new PayRow(worker, null, e.getMessage(), paid, advance, milk ? litres : null, days));
             }
         }
         model.addAttribute("page", "pay");
@@ -97,6 +117,9 @@ public class PayController {
     public String pay(@RequestParam Long workerId, @RequestParam String amount, @RequestParam PaymentMethod method,
                       @RequestParam YearMonth month, RedirectAttributes flash) {
         LocalDate today = LocalDate.now(clock);
+        InputRules.requireMonth(month, today);
+        amount = InputRules.requireRupees(amount, "the amount paid");
+        rejectRepeat("pay|" + workerId + "|" + amount + "|" + method + "|" + month);
         LocalDate paidOn = YearMonth.from(today).equals(month) ? today : month.atEndOfMonth();
         long beforePaise = paidInMonth(workerId, month);
         paymentService.record(new RecordPayment(workerId, paidOn, amount, method, null, null, AllocationMode.AUTO, List.of()));
@@ -121,7 +144,12 @@ public class PayController {
      * payment is matched to the month automatically.
      */
     @PostMapping("/pay/close")
+    @org.springframework.transaction.annotation.Transactional
     public String close(@RequestParam Long workerId, @RequestParam YearMonth month, RedirectAttributes flash) {
+        InputRules.requireMonth(month, LocalDate.now(clock));
+        if (earningsService.preview(workerId, month).finalized()) {
+            throw new BusinessRuleException(workerService.getWorker(workerId).getName() + "'s " + month + " is already closed.");
+        }
         var draft = earningsService.calculate(workerId, month);
         if (!draft.canFinalize()) {
             throw new BusinessRuleException("This month is not ready to close. " + String.join(" ", draft.blockers()));
@@ -155,14 +183,31 @@ public class PayController {
 
     /** Money handed over ahead of pay. It is taken back from later months when they are closed. */
     @PostMapping("/pay/advance")
+    @org.springframework.transaction.annotation.Transactional
     public String advance(@RequestParam Long workerId, @RequestParam String amount, @RequestParam PaymentMethod method,
                           @RequestParam YearMonth month, RedirectAttributes flash) {
+        InputRules.requireMonth(month, LocalDate.now(clock));
+        amount = InputRules.requireRupees(amount, "the advance");
+        rejectRepeat("advance|" + workerId + "|" + amount + "|" + method);
         var result = paymentService.record(new RecordPayment(workerId, LocalDate.now(clock), amount, method, null,
                 "Advance", AllocationMode.KEEP_UNALLOCATED, List.of()));
         paymentService.recordExcessAsAdvance(result.payment().getId(), amount, "Advance given");
         flash.addFlashAttribute("ok", "Advance of " + Money.format(Money.parsePositiveRupees(amount)) + " recorded for "
                 + workerService.getWorker(workerId).getName() + ". It is taken back from later pay.");
         return "redirect:/pay?month=" + month;
+    }
+
+    private static final long REPEAT_SECONDS = 8;
+    private final java.util.Map<String, java.time.Instant> recentPosts = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** The same payment sent twice within a few seconds is almost always a double click, so the second is refused. */
+    private void rejectRepeat(String key) {
+        java.time.Instant now = clock.instant();
+        recentPosts.values().removeIf(at -> at.isBefore(now.minusSeconds(REPEAT_SECONDS)));
+        if (recentPosts.putIfAbsent(key, now) != null) {
+            throw new BusinessRuleException("That looks like the same amount sent twice. It was only recorded once. "
+                    + "To record another, wait a few seconds.");
+        }
     }
 
     private long paidInMonth(Long workerId, YearMonth month) {

@@ -41,12 +41,18 @@
                 <span th:if="${r.stillToPayPaise() < 0}">Paid
                     <strong th:text="${T(com.homeexpense.money.Money).format(-r.stillToPayPaise())}">₹0.00</strong> in advance</span>
             </p>
+            <p class="meta" th:if="${r.litresMilli() != null}">
+                Milk delivered this month:
+                <strong th:text="${#numbers.formatDecimal(r.litresMilli() / 1000.0, 1, 'NONE', 2, 'POINT')} + ' litres'">0 litres</strong>
+                on <span th:text="${r.deliveryDays()}">0</span> days. Pay is the litres times the price per litre.
+            </p>
             <p class="meta" th:if="${r.earnings().finalized()}"><span class="badge done">Month closed</span></p>
             <form th:if="${ended and !r.earnings().finalized() and r.earnings().blockers().isEmpty()}"
-                  th:action="@{/pay/close}" method="post" class="actions"
-                  onsubmit="return confirm('Close this month for this person? Their days for the month can no longer be changed.')">
+                  th:action="@{/pay/close}" method="post" class="actions">
                 <input type="hidden" name="workerId" th:value="${r.worker().id}">
                 <input type="hidden" name="month" th:value="${month}">
+                <label class="meta"><input type="checkbox" required style="width:auto">
+                    Yes, close it. Their days for this month can no longer be changed.</label>
                 <button class="btn" type="submit">Close this month</button>
             </form>
             <p class="meta" th:if="${!r.earnings().blockers().isEmpty()}"><strong>Before you pay:</strong></p>

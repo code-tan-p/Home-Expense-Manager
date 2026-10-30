@@ -1,6 +1,5 @@
 package com.homeexpense.controller;
 
-import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -12,6 +11,7 @@ import com.homeexpense.dto.DayView;
 import com.homeexpense.dto.WorkDetails;
 import com.homeexpense.exception.BusinessRuleException;
 import com.homeexpense.model.AbsenceReason;
+import com.homeexpense.model.DeductionDecision;
 import com.homeexpense.model.PaymentModel;
 import com.homeexpense.service.DailyWorkService;
 import com.homeexpense.service.PayService;
@@ -38,7 +38,8 @@ public class HomeController {
 
     @GetMapping("/")
     public String today(@RequestParam(required = false) LocalDate date, Model model) {
-        LocalDate day = date == null ? LocalDate.now(clock) : date;
+        LocalDate today = LocalDate.now(clock);
+        LocalDate day = date == null ? today : InputRules.requireDate(date, today);
         DayView view = dailyWorkService.dayView(day);
         // How each worker is paid decides which box they need: litres for milk, hours for hourly pay.
         Map<Long, PaymentModel> payModels = new HashMap<>();
@@ -50,7 +51,7 @@ public class HomeController {
         model.addAttribute("date", day);
         model.addAttribute("previous", day.minusDays(1));
         model.addAttribute("next", day.plusDays(1));
-        model.addAttribute("isToday", day.equals(LocalDate.now(clock)));
+        model.addAttribute("isToday", day.equals(today));
         model.addAttribute("view", view);
         model.addAttribute("payModels", payModels);
         model.addAttribute("pending", view.workers().stream().mapToLong(DayView.WorkerDay::notRecordedCount).sum());
@@ -62,16 +63,23 @@ public class HomeController {
     public String done(@RequestParam LocalDate date, @RequestParam Long workerId, @RequestParam Long entryId,
                        @RequestParam(required = false) String quantity, @RequestParam(required = false) String hours,
                        RedirectAttributes flash) {
-        WorkDetails details = WorkDetails.completed();
-        if (quantity != null && !quantity.isBlank()) {
-            details = WorkDetails.completedQuantity(toMilli(quantity));
-        } else if (hours != null && !hours.isBlank()) {
-            BigDecimal minutes = parseNumber(hours).multiply(BigDecimal.valueOf(60));
-            if (minutes.stripTrailingZeros().scale() > 0) {
-                throw new BusinessRuleException("Enter hours as a number such as 2 or 1.5.");
+        InputRules.requireDate(date, LocalDate.now(clock));
+        PaymentModel model = payService.primaryModelOn(workerId, date).orElse(null);
+        WorkDetails details = switch (model == null ? PaymentModel.MONTHLY_SALARY : model) {
+            case PER_UNIT -> {
+                if (quantity == null || quantity.isBlank()) {
+                    throw new BusinessRuleException("Enter the litres first, or press 'No delivery'.");
+                }
+                yield WorkDetails.completedQuantity(InputRules.requireLitresMilli(quantity));
             }
-            details = WorkDetails.completedMinutes(minutes.intValueExact());
-        }
+            case HOURLY -> {
+                if (hours == null || hours.isBlank()) {
+                    throw new BusinessRuleException("Enter the hours worked first.");
+                }
+                yield WorkDetails.completedMinutes(InputRules.requireMinutes(hours));
+            }
+            default -> WorkDetails.completed();
+        };
         dailyWorkService.recordScheduled(workerId, date, entryId, details);
         flash.addFlashAttribute("ok", "Saved.");
         return "redirect:/?date=" + date;
@@ -81,6 +89,7 @@ public class HomeController {
     @PostMapping("/work/absent")
     public String absent(@RequestParam LocalDate date, @RequestParam Long workerId, @RequestParam AbsenceReason reason,
                          RedirectAttributes flash) {
+        InputRules.requireDate(date, LocalDate.now(clock));
         dailyWorkService.markWholeDay(workerId, date, reason, null);
         flash.addFlashAttribute("ok", "Saved.");
         return "redirect:/?date=" + date;
@@ -89,9 +98,10 @@ public class HomeController {
     /** The household's answer to "Didn't come": reduce that day's pay, or pay in full. */
     @PostMapping("/work/deduction")
     public String deduction(@RequestParam LocalDate date, @RequestParam Long recordId,
-                            @RequestParam com.homeexpense.model.DeductionDecision decision, RedirectAttributes flash) {
+                            @RequestParam DeductionDecision decision, RedirectAttributes flash) {
+        InputRules.requireDate(date, LocalDate.now(clock));
         dailyWorkService.decideDeduction(recordId, decision, null);
-        flash.addFlashAttribute("ok", decision == com.homeexpense.model.DeductionDecision.APPROVED
+        flash.addFlashAttribute("ok", decision == DeductionDecision.APPROVED
                 ? "Pay will be reduced for that day." : "That day will be paid in full.");
         return "redirect:/?date=" + date;
     }
@@ -99,6 +109,7 @@ public class HomeController {
     /** Takes back a wrong entry. The activity becomes "not recorded" again; the history keeps the mistake. */
     @PostMapping("/work/undo")
     public String undo(@RequestParam LocalDate date, @RequestParam Long recordId, RedirectAttributes flash) {
+        InputRules.requireDate(date, LocalDate.now(clock));
         dailyWorkService.voidRecord(recordId, "Entered by mistake");
         flash.addFlashAttribute("ok", "Entry removed. You can record it again.");
         return "redirect:/?date=" + date;
@@ -110,6 +121,7 @@ public class HomeController {
      */
     @PostMapping("/work/all-present")
     public String allPresent(@RequestParam LocalDate date, RedirectAttributes flash) {
+        InputRules.requireDate(date, LocalDate.now(clock));
         List<String> skipped = new ArrayList<>();
         List<String> problems = new ArrayList<>();
         int saved = 0;
@@ -141,26 +153,5 @@ public class HomeController {
             flash.addFlashAttribute("error", String.join(" ", problems));
         }
         return "redirect:/?date=" + date;
-    }
-
-    /** Litres (or any unit) typed like 1.5 or 1,5, up to three decimals, as thousandths. */
-    static long toMilli(String text) {
-        BigDecimal value = parseNumber(text);
-        if (value.signum() <= 0) {
-            throw new BusinessRuleException("Enter more than zero. For no delivery, use the 'No delivery' button.");
-        }
-        BigDecimal milli = value.movePointRight(3);
-        if (milli.stripTrailingZeros().scale() > 0) {
-            throw new BusinessRuleException("Use at most three decimals, for example 1.5 or 0.25.");
-        }
-        return milli.longValueExact();
-    }
-
-    private static BigDecimal parseNumber(String text) {
-        try {
-            return new BigDecimal(text.strip().replace(',', '.'));
-        } catch (NumberFormatException e) {
-            throw new BusinessRuleException("'" + text.strip() + "' is not a number. Type it like 1.5.");
-        }
     }
 }

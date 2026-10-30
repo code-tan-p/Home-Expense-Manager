@@ -21,9 +21,10 @@
         <h2>Restore a backup</h2>
         <p>Choose a backup file you downloaded from this page. It replaces everything after you close and
             reopen the program. Your current records are kept as a safety copy.</p>
-        <form th:action="@{/backup/restore}" method="post" enctype="multipart/form-data"
-              onsubmit="return confirm('Replace all current records with this backup after the next start?')">
+        <form th:action="@{/backup/restore}" method="post" enctype="multipart/form-data">
             <input type="file" name="file" accept=".db" required aria-label="Backup file" style="margin-bottom:.75rem">
+            <label class="meta" style="margin-bottom:.75rem"><input type="checkbox" required style="width:auto">
+                Yes, replace all current records with this backup after the next start.</label>
             <button class="btn caution" type="submit">Restore this backup</button>
         </form>
     </section>

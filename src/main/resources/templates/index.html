@@ -19,7 +19,7 @@
         <a class="btn quiet" th:unless="${isToday}" th:href="@{/}">Back to today</a>
         <span class="spacer"></span>
         <form th:action="@{/work/all-present}" method="post" th:if="${pending > 0}"
-              onsubmit="return confirm('Mark everyone who is not recorded yet as worked? Milk and hourly workers are skipped.')">
+              title="Marks everyone not recorded yet as worked. Milk and hourly workers are skipped. Each entry can be undone.">
             <input type="hidden" name="date" th:value="${date}">
             <button class="btn primary" type="submit">Mark all as worked</button>
         </form>
@@ -67,7 +67,7 @@
                 </form>
                 <span class="meta" th:if="${a.record().absenceReason != null and a.record().absenceReason.name() == 'UNAUTHORIZED_ABSENCE' and a.record().deductionDecision.name() == 'APPROVED'}">Pay reduced</span>
                 <span class="meta" th:if="${a.record().absenceReason != null and a.record().absenceReason.name() == 'UNAUTHORIZED_ABSENCE' and a.record().deductionDecision.name() == 'WAIVED'}">Paid in full</span>
-                <form th:action="@{/work/undo}" method="post" onsubmit="return confirm('Remove this entry so you can record it again?')">
+                <form th:action="@{/work/undo}" method="post">
                     <input type="hidden" name="date" th:value="${date}">
                     <input type="hidden" name="recordId" th:value="${a.record().id}">
                     <button class="btn quiet" type="submit">Undo</button>

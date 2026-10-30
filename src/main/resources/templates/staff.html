@@ -50,10 +50,10 @@
                 <input class="small" type="date" name="from" th:value="${today}" required aria-label="Starting on">
                 <button class="btn" type="submit">Save weekdays</button>
             </form>
-            <form class="actions" th:action="@{/staff/{id}/stop(id=${r.worker().id})}" method="post" style="margin-top:.75rem"
-                  onsubmit="return confirm('Mark this person as no longer working here?')">
+            <form class="actions" th:action="@{/staff/{id}/stop(id=${r.worker().id})}" method="post" style="margin-top:.75rem">
                 <span class="meta">Last working day:</span>
                 <input class="small" type="date" name="last" th:value="${today}" required aria-label="Last working day">
+                <label class="meta"><input type="checkbox" required style="width:auto"> Yes, they have left</label>
                 <button class="btn caution" type="submit">No longer working</button>
             </form>
         </details>

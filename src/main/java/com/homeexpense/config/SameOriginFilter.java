@@ -36,7 +36,11 @@ public class SameOriginFilter extends OncePerRequestFilter {
 
     static boolean cameFromThisSite(HttpServletRequest request) {
         String source = request.getHeader("Origin");
-        if (source == null || source.isBlank() || "null".equals(source)) {
+        if ("null".equals(source)) {
+            // Sent by sandboxed or redirected cross-site pages. Never by this site's own forms.
+            return false;
+        }
+        if (source == null || source.isBlank()) {
             source = request.getHeader("Referer");
         }
         if (source == null || source.isBlank()) {
