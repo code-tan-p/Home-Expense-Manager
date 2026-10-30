@@ -179,3 +179,12 @@ main p a:not(.btn):hover, main li a:not(.btn):hover { color: var(--primary); }
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: .75rem; margin-bottom: 1rem; }
 .stat { display: flex; flex-direction: column; gap: .15rem; margin: 0; }
 .stat .total { font-size: 1.5rem; }
+
+.tablewrap { overflow-x: auto; }
+.breakdown th { text-align: left; font-size: .8rem; color: var(--muted); padding: .3rem .4rem; }
+@media print {
+    .topbar, .noprint, nav, .flash { display: none !important; }
+    body { background: #fff; }
+    .card { box-shadow: none; border: 0; padding: 0; }
+    main { max-width: none; padding: 0; }
+}
