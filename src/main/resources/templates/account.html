@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Account')}"></head>
+<body>
+<header th:replace="~{fragments :: header('account')}"></header>
+<main>
+    <h1 th:text="${firstRun} ? 'Welcome' : 'Account'">Account</h1>
+    <p class="sub" th:if="${firstRun}">Before you start, choose how to protect your records.</p>
+    <p class="sub" th:unless="${firstRun}">Your password and signing in.</p>
+
+    <div th:replace="~{fragments :: messages}"></div>
+
+    <!-- No password yet -->
+    <section class="card" th:if="${!on}">
+        <h2>Create a password</h2>
+        <p>With a password, only people who know it can see or change your records. Anyone in your home who opens
+            this address will be asked for it.</p>
+        <form th:action="@{/account/password/new}" method="post">
+            <div class="form-grid">
+                <div><label for="password">Password (at least 6 characters)</label>
+                    <input id="password" type="password" name="password" autocomplete="new-password" minlength="6" required></div>
+                <div><label for="confirm">Type it again</label>
+                    <input id="confirm" type="password" name="confirm" autocomplete="new-password" minlength="6" required></div>
+            </div>
+            <button class="btn primary" type="submit">Create password</button>
+        </form>
+        <form th:action="@{/account/skip}" method="post" style="margin-top:1rem" th:if="${firstRun}">
+            <p class="meta">Using this only on your own computer? You can skip this and create a password later.</p>
+            <button class="btn" type="submit">Skip for now</button>
+        </form>
+        <p class="meta" style="margin-top:1rem" th:unless="${firstRun}">
+            There is no password right now, so anyone who can open this address can see and change the records.</p>
+    </section>
+
+    <!-- Password set on the server -->
+    <section class="card" th:if="${on and serverManaged}">
+        <h2>Password</h2>
+        <p>Your password is set by whoever runs this program (the <code>HOME_EXPENSE_PASSWORD</code> setting), so it can't be changed here.
+            To change it, change that setting and restart the program.</p>
+    </section>
+
+    <!-- Password stored in the program -->
+    <section class="card" th:if="${on and !serverManaged}">
+        <h2>Change password</h2>
+        <form th:action="@{/account/password/change}" method="post">
+            <div class="form-grid">
+                <div><label for="current">Current password</label>
+                    <input id="current" type="password" name="current" autocomplete="current-password" required></div>
+                <div><label for="newpw">New password (at least 6 characters)</label>
+                    <input id="newpw" type="password" name="password" autocomplete="new-password" minlength="6" required></div>
+                <div><label for="again">Type the new one again</label>
+                    <input id="again" type="password" name="confirm" autocomplete="new-password" minlength="6" required></div>
+            </div>
+            <button class="btn primary" type="submit">Change password</button>
+        </form>
+    </section>
+
+    <section class="card" th:if="${on and !serverManaged}">
+        <h2>Turn the password off</h2>
+        <p class="meta">Only do this on a computer nobody else can reach. Anyone who can open the address will see the records.</p>
+        <form th:action="@{/account/password/off}" method="post" class="actions">
+            <input type="password" name="current" placeholder="Current password" aria-label="Current password"
+                   autocomplete="current-password" required style="max-width:16rem">
+            <button class="btn caution" type="submit">Turn off password</button>
+        </form>
+    </section>
+
+    <section class="card" th:if="${on}">
+        <h2>Sign out</h2>
+        <p class="meta">Close your session on this browser. Use it on a shared computer.</p>
+        <form th:action="@{/logout}" method="post">
+            <button class="btn" type="submit">Sign out</button>
+        </form>
+    </section>
+</main>
+</body>
+</html>

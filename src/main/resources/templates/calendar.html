@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Calendar')}"></head>
+<body>
+<header th:replace="~{fragments :: header('calendar')}"></header>
+<main>
+    <h1>Calendar</h1>
+    <p class="sub">Who came, who was off, and why. Tap a day to change it on the Today screen.</p>
+
+    <div class="card empty" th:if="${#lists.isEmpty(workers)}">
+        <p>Add a worker first.</p>
+        <a class="btn primary" th:href="@{/staff}">Add a worker</a>
+    </div>
+
+    <div th:if="${!#lists.isEmpty(workers)}">
+        <div class="chips" role="tablist" aria-label="Choose a person">
+            <a th:each="w : ${workers}" class="chip" th:classappend="${w.id == worker.id} ? 'active'"
+               th:href="@{/calendar(workerId=${w.id}, month=${month})}" th:text="${w.name}">Name</a>
+        </div>
+
+        <div class="toolbar">
+            <a class="btn" th:href="@{/calendar(workerId=${worker.id}, month=${previous})}" aria-label="Previous month">&larr;</a>
+            <span class="date" th:text="${#temporals.format(month, 'MMMM yyyy')}">October 2026</span>
+            <a class="btn" th:href="@{/calendar(workerId=${worker.id}, month=${next})}" aria-label="Next month">&rarr;</a>
+        </div>
+
+        <section class="card">
+            <div class="cal" role="grid" th:attr="aria-label=${worker.name} + ' in ' + ${#temporals.format(month, 'MMMM yyyy')}">
+                <div class="cal-head" role="columnheader">Mon</div><div class="cal-head" role="columnheader">Tue</div><div class="cal-head" role="columnheader">Wed</div><div class="cal-head" role="columnheader">Thu</div><div class="cal-head" role="columnheader">Fri</div><div class="cal-head" role="columnheader">Sat</div><div class="cal-head" role="columnheader">Sun</div>
+                <th:block th:each="week : ${cal.weeks}">
+                    <th:block th:each="c : ${week}">
+                        <div class="cal-cell blank" th:if="${c == null}"></div>
+                        <a th:if="${c != null}" class="cal-cell" th:classappend="${c.css}"
+                           th:href="@{/(date=${c.date})}"
+                           th:title="${c.status.label != '' ? c.status.label + (c.detail != '' ? ' · ' + c.detail : '') : ''}">
+                            <span class="cal-day" th:text="${c.day}">1</span>
+                            <span class="cal-note" th:text="${c.detail != '' ? c.detail : c.status.label}"></span>
+                        </a>
+                    </th:block>
+                </th:block>
+            </div>
+
+            <ul class="legend">
+                <li><i class="dot came"></i> Came</li>
+                <li><i class="dot leave"></i> On leave</li>
+                <li><i class="dot holiday"></i> Holiday</li>
+                <li><i class="dot absent"></i> Didn't come</li>
+                <li th:if="${cal.milk}"><i class="dot no-delivery"></i> No delivery</li>
+                <li><i class="dot day-off"></i> Day off</li>
+                <li><i class="dot not-recorded"></i> Not recorded</li>
+            </ul>
+        </section>
+
+        <section class="card">
+            <h2>This month for <span th:text="${worker.name}">Name</span></h2>
+            <p class="meta" th:if="${cal.summary.hasPeriod()}">
+                From <strong th:text="${#temporals.format(cal.summary.from, 'd MMM')}">1 Oct</strong>
+                to <strong th:text="${#temporals.format(cal.summary.to, 'd MMM yyyy')}">30 Oct 2026</strong>
+                <span th:if="${cal.summary.soFar}">(so far)</span>
+            </p>
+            <ul class="stats">
+                <li><strong th:text="${cal.summary.came}">0</strong> days came</li>
+                <li th:if="${cal.summary.leave > 0}"><strong th:text="${cal.summary.leave}">0</strong> on leave</li>
+                <li th:if="${cal.summary.holiday > 0}"><strong th:text="${cal.summary.holiday}">0</strong> holiday</li>
+                <li th:if="${cal.summary.noDelivery > 0}"><strong th:text="${cal.summary.noDelivery}">0</strong> no delivery</li>
+                <li th:if="${cal.summary.absent > 0}"><strong th:text="${cal.summary.absent}">0</strong> didn't come</li>
+                <li th:if="${cal.summary.dayOff > 0}"><strong th:text="${cal.summary.dayOff}">0</strong> days off</li>
+                <li th:if="${cal.summary.notRecorded > 0}"><strong th:text="${cal.summary.notRecorded}">0</strong> not recorded yet</li>
+            </ul>
+            <p th:if="${cal.milk}" class="total-line">
+                Milk delivered: <strong th:text="${cal.summary.litres} + ' litres'">0 litres</strong>
+                on <span th:text="${cal.summary.deliveryDays}">0</span> days
+            </p>
+            <p th:if="${cal.hourly}" class="total-line">
+                Hours worked: <strong th:text="${cal.summary.hours} + ' hours'">0 hours</strong>
+            </p>
+            <p><a class="btn" th:href="@{/pay(month=${month})}">See the pay for this month</a></p>
+        </section>
+    </div>
+</main>
+</body>
+</html>

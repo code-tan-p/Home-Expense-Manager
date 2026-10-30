@@ -1,6 +1,6 @@
 package com.homeexpense.controller;
 
-import org.springframework.beans.factory.annotation.Value;
+import com.homeexpense.service.AccountService;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ModelAttribute;
 
@@ -8,14 +8,14 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 @ControllerAdvice
 public class SharedPageData {
 
-    private final boolean loginEnabled;
+    private final AccountService accounts;
 
-    public SharedPageData(@Value("${home-expense.password:}") String password) {
-        this.loginEnabled = !password.isBlank();
+    public SharedPageData(AccountService accounts) {
+        this.accounts = accounts;
     }
 
-    @ModelAttribute("loginEnabled")
-    public boolean loginEnabled() {
-        return loginEnabled;
+    @ModelAttribute("passwordOn")
+    public boolean passwordOn() {
+        return accounts.passwordIsOn();
     }
 }

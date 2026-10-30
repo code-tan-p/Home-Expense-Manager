@@ -1,5 +1,6 @@
 #!/bin/sh
 # Starts Home Expense Manager. Open http://127.0.0.1:8080/ in your browser. Press Ctrl+C to stop.
+# The first time, the program asks you to create a password (or skip it).
 cd "$(dirname "$0")" || exit 1
 if ! command -v java >/dev/null 2>&1; then
   echo "Java 21 or newer is needed. Install it from https://adoptium.net and run this again."

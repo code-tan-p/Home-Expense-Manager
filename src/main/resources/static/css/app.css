@@ -83,7 +83,7 @@ h2 { font-size: 1.1rem; margin: 0 0 .75rem; }
 .flash.error { background: #f6e0d6; color: #8c3f22; }
 
 label { display: block; font-weight: 600; font-size: .9rem; margin-bottom: .25rem; }
-input[type=text], input[type=date], input[type=number], input[type=month], select {
+input[type=text], input[type=password], input[type=date], input[type=number], input[type=month], select {
     width: 100%; padding: .6rem .75rem; border: 1px solid var(--line); border-radius: 10px;
     font: inherit; background: #fff; color: var(--primary); min-height: 2.6rem;
 }
@@ -116,3 +116,51 @@ nav a { min-height: 2.75rem; display: inline-flex; align-items: center; }
 .days input:focus-visible + span { outline: 3px solid var(--primary); }
 nav a:focus-visible { outline: 2px solid var(--tertiary); outline-offset: 2px; }
 input.small { width: 9rem; }
+
+/* Calendar */
+.chips { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.chip {
+    padding: .5rem 1rem; border-radius: 999px; border: 1px solid var(--line); background: var(--card);
+    color: var(--primary); text-decoration: none; font-weight: 600; min-height: 2.75rem; display: inline-flex; align-items: center;
+}
+.chip.active { background: var(--secondary); border-color: var(--secondary); color: #fff; }
+.cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: .35rem; }
+.cal-head { text-align: center; font-size: .8rem; font-weight: 600; color: var(--muted); padding-bottom: .25rem; }
+.cal-cell {
+    display: flex; flex-direction: column; justify-content: space-between; gap: .1rem;
+    min-height: 4.4rem; padding: .35rem .4rem; border-radius: 10px; text-decoration: none;
+    border: 1px solid var(--line); background: var(--card); color: var(--primary); overflow: hidden;
+}
+.cal-cell.blank { border: 0; background: transparent; }
+a.cal-cell:hover { border-color: var(--secondary); }
+a.cal-cell:focus-visible { outline: 3px solid var(--primary); outline-offset: 1px; }
+.cal-day { font-weight: 700; font-size: .9rem; }
+.cal-note { font-size: .72rem; line-height: 1.15; overflow-wrap: anywhere; }
+.cal-cell.came { background: #e2ead9; border-color: #c9d8bb; }
+.cal-cell.part-day { background: #eef2e3; border-color: #c9d8bb; }
+.cal-cell.came .cal-note, .cal-cell.part-day .cal-note { font-weight: 700; }
+.cal-cell.leave { background: var(--tertiary); border-color: #c5b392; }
+.cal-cell.holiday { background: #efe6d4; border-color: #d9c9b2; border-style: dashed; }
+.cal-cell.no-delivery { background: #efe6d4; border-color: #d9c9b2; border-style: dashed; }
+.cal-cell.absent { background: #f6e0d6; border-color: #e3b9a6; color: #8c3f22; }
+.cal-cell.day-off { background: #f1eee4; color: var(--muted); }
+.cal-cell.not-recorded { background: #fff; border: 1px dashed var(--accent); }
+.cal-cell.future, .cal-cell.not-employed { background: transparent; color: var(--muted); opacity: .6; }
+.legend { list-style: none; display: flex; flex-wrap: wrap; gap: .5rem 1rem; padding: 0; margin: 1rem 0 0; font-size: .85rem; color: var(--muted); }
+.dot { display: inline-block; width: .8rem; height: .8rem; border-radius: 3px; border: 1px solid var(--line); vertical-align: -1px; margin-right: .2rem; }
+.dot.came { background: #e2ead9; } .dot.leave { background: var(--tertiary); } .dot.holiday, .dot.no-delivery { background: #efe6d4; }
+.dot.absent { background: #f6e0d6; } .dot.day-off { background: #f1eee4; } .dot.not-recorded { background: #fff; border-color: var(--accent); }
+.stats { list-style: none; display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; padding: 0; margin: .5rem 0; }
+.stats strong { font-size: 1.15rem; }
+.total-line { margin: .25rem 0 .75rem; font-size: 1.05rem; }
+@media (max-width: 36rem) {
+    .cal { gap: .2rem; }
+    .cal-cell { min-height: 3.6rem; padding: .25rem; }
+    .cal-note { font-size: .62rem; }
+}
+
+.flash.notice { background: #f1eee4; color: var(--primary); border: 1px solid var(--line); font-weight: 400; font-size: .95rem; }
+.flash.notice a { color: var(--primary); font-weight: 600; }
+
+main p a:not(.btn), main li a:not(.btn), .flash a { color: var(--secondary); font-weight: 600; }
+main p a:not(.btn):hover, main li a:not(.btn):hover { color: var(--primary); }

@@ -36,7 +36,8 @@ public class PayController {
 
     /** One worker's month. {@code paidPaise} counts payments dated inside the month. */
     public record PayRow(Worker worker, EarningsService.Preview earnings, String problem, long paidPaise,
-                         long advancePaise, Long litresMilli, int deliveryDays) {
+                         long advancePaise, Long litresMilli, int deliveryDays,
+                         com.homeexpense.service.CalendarService.Summary summary) {
 
         /** Still to pay, or negative when more than the earnings so far was paid. */
         public long stillToPayPaise() {
@@ -47,7 +48,7 @@ public class PayController {
     private final WorkerService workerService;
     private final EarningsService earningsService;
     private final PaymentService paymentService;
-    private final com.homeexpense.service.DailyWorkService dailyWorkService;
+    private final com.homeexpense.service.CalendarService calendarService;
     private final com.homeexpense.service.PayService payService;
     private final com.homeexpense.service.SettlementService settlementService;
     private final PaymentRepository paymentRepository;
@@ -56,10 +57,10 @@ public class PayController {
 
     public PayController(WorkerService workerService, EarningsService earningsService, PaymentService paymentService,
                          com.homeexpense.service.SettlementService settlementService,
-                         com.homeexpense.service.DailyWorkService dailyWorkService,
+                         com.homeexpense.service.CalendarService calendarService,
                          com.homeexpense.service.PayService payService,
                          PaymentRepository paymentRepository, PaymentVoidRepository paymentVoidRepository, Clock clock) {
-        this.dailyWorkService = dailyWorkService;
+        this.calendarService = calendarService;
         this.payService = payService;
         this.workerService = workerService;
         this.earningsService = earningsService;
@@ -85,21 +86,13 @@ public class PayController {
             boolean milk = payService.primaryModelOn(worker.getId(), shown.atEndOfMonth())
                     .or(() -> payService.primaryModelOn(worker.getId(), shown.atDay(1)))
                     .filter(m -> m == com.homeexpense.model.PaymentModel.PER_UNIT).isPresent();
-            long litres = 0;
-            int days = 0;
-            if (milk) {
-                for (var rec : dailyWorkService.history(worker.getId(), shown.atDay(1), shown.atEndOfMonth())) {
-                    if (rec.isCurrent() && rec.getActualQuantityMilli() != null && rec.getActualQuantityMilli() > 0) {
-                        litres += rec.getActualQuantityMilli();
-                        days++;
-                    }
-                }
-            }
+            var summary = calendarService.summary(worker, shown);
+            Long litres = milk ? summary.litresMilli() : null;
             try {
                 rows.add(new PayRow(worker, earningsService.preview(worker.getId(), shown), null, paid, advance,
-                        milk ? litres : null, days));
+                        litres, summary.deliveryDays(), summary));
             } catch (BusinessRuleException e) {
-                rows.add(new PayRow(worker, null, e.getMessage(), paid, advance, milk ? litres : null, days));
+                rows.add(new PayRow(worker, null, e.getMessage(), paid, advance, litres, summary.deliveryDays(), summary));
             }
         }
         model.addAttribute("page", "pay");

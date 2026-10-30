@@ -38,7 +38,8 @@
             <div class="person">
                 <div class="avatar" th:text="${#strings.substring(day.worker().name, 0, 1)}">A</div>
                 <div>
-                    <div class="name" th:text="${day.worker().name}">Anita Sharma</div>
+                    <div class="name"><span th:text="${day.worker().name}">Anita Sharma</span>
+                        <a class="meta" th:href="@{/calendar(workerId=${day.worker().id})}" style="margin-left:.5rem">Calendar</a></div>
                     <div class="meta" th:text="${day.worker().workerType.name}">Maid</div>
                 </div>
             </div>

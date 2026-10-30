@@ -26,7 +26,26 @@
                     <div class="meta" th:text="${r.worker().workerType.name}">Maid</div>
                 </div>
             </div>
-                    </div>
+        </div>
+
+        <div th:if="${r.summary().hasPeriod()}">
+            <p class="meta">
+                <strong>Pay counted from</strong>
+                <span th:text="${#temporals.format(r.summary().from(), 'd MMM')}">1 Oct</span>
+                to <span th:text="${#temporals.format(r.summary().to(), 'd MMM yyyy')}">30 Oct 2026</span>
+                <span th:if="${r.summary().soFar()}">(so far this month)</span>
+            </p>
+            <p class="meta">
+                Came <strong th:text="${r.summary().came()}">0</strong> days
+                <span th:if="${r.summary().leave() > 0}"> · <span th:text="${r.summary().leave()}">0</span> on leave</span>
+                <span th:if="${r.summary().holiday() > 0}"> · <span th:text="${r.summary().holiday()}">0</span> holiday</span>
+                <span th:if="${r.summary().noDelivery() > 0}"> · <span th:text="${r.summary().noDelivery()}">0</span> no delivery</span>
+                <span th:if="${r.summary().absent() > 0}"> · <span th:text="${r.summary().absent()}">0</span> didn't come</span>
+                <span th:if="${r.summary().dayOff() > 0}"> · <span th:text="${r.summary().dayOff()}">0</span> days off</span>
+                <span th:if="${r.summary().notRecorded() > 0}"> · <span th:text="${r.summary().notRecorded()}">0</span> not recorded</span>
+                · <a th:href="@{/calendar(workerId=${r.worker().id}, month=${month})}">See calendar</a>
+            </p>
+        </div>
 
         <p class="meta" th:if="${r.problem() != null}">
             We could not work out this month's pay for this person. Check their pay on the Staff page.
@@ -42,9 +61,9 @@
                     <strong th:text="${T(com.homeexpense.money.Money).format(-r.stillToPayPaise())}">₹0.00</strong> in advance</span>
             </p>
             <p class="meta" th:if="${r.litresMilli() != null}">
-                Milk delivered this month:
-                <strong th:text="${#numbers.formatDecimal(r.litresMilli() / 1000.0, 1, 'NONE', 2, 'POINT')} + ' litres'">0 litres</strong>
-                on <span th:text="${r.deliveryDays()}">0</span> days. Pay is the litres times the price per litre.
+                Milk delivered:
+                <strong th:text="${r.summary().litres} + ' litres'">0 litres</strong>
+                on <span th:text="${r.deliveryDays()}">0</span> delivery days. Pay is the litres times the price per litre.
             </p>
             <p class="meta" th:if="${r.earnings().finalized()}"><span class="badge done">Month closed</span></p>
             <form th:if="${ended and !r.earnings().finalized() and r.earnings().blockers().isEmpty()}"
