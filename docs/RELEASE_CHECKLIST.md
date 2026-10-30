@@ -41,7 +41,7 @@ Status words: **DONE** (screen and test exist), **BACKEND** (service exists, no 
 | Correction history, edit by audited correction | DONE | `/attendance/{id}`, `AttendanceHistoryTest` |
 | Notes per record | DONE | note box on the correction form |
 | Missing attendance list | PARTIAL | counts only; dedicated list MISSING |
-| Calendar view per worker | DONE | `/calendar` |
+| Calendar view per worker | DONE | `/calendar`, and on each worker profile (litres for milk, hours for hourly, leave and holiday otherwise) |
 | Attendance percentage | MISSING | |
 
 ### 3. Earnings engine (P0)
@@ -95,7 +95,8 @@ Status words: **DONE** (screen and test exist), **BACKEND** (service exists, no 
 | Clean navigation, mobile layout, confirmations, undo, empty states, validation, messages, rupee format | DONE |
 | Search and filter | MISSING |
 | Dark mode, shortcuts, Hindi / Punjabi | LATER |
-| Phone: bottom tab bar, one-tap litre buttons, bigger Still-to-pay | MISSING (P1b) |
+| Phone: one-tap litre buttons, bigger Still-to-pay, one-row scrolling menu | DONE |
+| Phone: bottom tab bar | LATER |
 
 ### 9. Security and reliability (P0)
 | Item | Status | Where / note |
@@ -104,8 +105,9 @@ Status words: **DONE** (screen and test exist), **BACKEND** (service exists, no 
 | CSRF, server-side validation, SQL injection safe, restricted restore | DONE | `BreakItTest` |
 | Sign-in lock-out, sign-up limits, recovery code | DONE | |
 | Tests (unit, integration, edge cases), health check | DONE | 389 tests |
-| Email one-time-code reset and email verification | MISSING (P1b) | needs owner's SMTP as server settings |
-| Secure cookie default when public, proxy-aware client address | MISSING (P1b) | |
+| Email one-time-code reset | DONE | `MailService`, optional: needs `SPRING_MAIL_*` and `HOME_EXPENSE_MAIL_FROM` set by the owner (tested with a stand-in mailer) |
+| Email verification at sign-up | LATER | |
+| Proxy-aware client address | DONE (setting `HOME_EXPENSE_FORWARD_HEADERS=framework`) | secure cookie is a setting (`HOME_EXPENSE_SECURE_COOKIE=true`), off by default for plain http |
 | Encrypted database, PIN, tamper-evident log | LATER | |
 
 ### 10. Reports and exports (P1)
@@ -120,43 +122,47 @@ Status words: **DONE** (screen and test exist), **BACKEND** (service exists, no 
 Tick each with its proof (test name or manual check).
 
 **1. Core functionality**
-- [ ] Every worker has an independent payment model and schedule.
-- [ ] Attendance handles present, absent, leave, holiday, partial.
-- [ ] All pay models calculate correctly.
-- [ ] Rate changes apply only from their effective date.
-- [ ] Missing attendance cannot silently become zero earnings.
-- [ ] Additional work is accounted for.
+- [x] Every worker has an independent payment model and schedule. (`WorkerServiceIntegrationTest`, `ScheduleServiceIntegrationTest`)
+- [x] Attendance handles present, absent, leave, holiday, partial. (`DailyWorkServiceIntegrationTest`, `CalendarTest`)
+- [x] All pay models calculate correctly. (`Earnings*IntegrationTest`, milk litres x price in `HomeControllerTest`)
+- [x] Rate changes apply only from their effective date. (`EarningsLifecycleIntegrationTest`)
+- [x] Missing attendance cannot silently become zero earnings. (blockers and warnings on Monthly Pay; `EarningsGuardIntegrationTest`)
+- [x] Additional work is accounted for. (`EarningsExtraWorkIntegrationTest`; the entry form is still LATER)
 
 **2. Financial correctness**
-- [ ] All money is exact to the paisa.
-- [ ] Multiple partial payments reconcile.
-- [ ] Advances are recovered by the defined rules.
-- [ ] Overpayments and unpaid balances are handled.
-- [ ] Every settlement has an explainable breakdown (screen).
-- [ ] Corrections keep the original history (screen).
+- [x] All money is exact to the paisa. (`MoneyTest`, `FractionTest`)
+- [x] Multiple partial payments reconcile. (`PaymentReplacementIntegrationTest`, `SettlementFlowIntegrationTest`)
+- [x] Advances are recovered by the defined rules. (`SettlementFlowIntegrationTest`; the recovery history screen is still LATER)
+- [x] Overpayments and unpaid balances are handled. (`SettlementFlowIntegrationTest`)
+- [x] Every settlement has an explainable breakdown (screen). ("How this was worked out", salary slip)
+- [x] Corrections keep the original history (screen). (`PaymentHistoryTest`, `AttendanceHistoryTest`, `ExpenseTest`)
 
 **3. Data safety**
-- [ ] Backup is consistent and restorable.
-- [ ] Restore validates before replacing live data.
-- [ ] Interrupted transactions leave no partial records.
-- [ ] Migrations work on existing installations.
-- [ ] Audit log shows what changed and when.
+- [x] Backup is consistent and restorable. (`SignUpTest.backupAndRestore...`)
+- [x] Restore validates before replacing live data. (`BreakItTest`, `OlderBackupRestoreTest`)
+- [x] Interrupted transactions leave no partial records. (`EarningsAtomicityIntegrationTest`, `FinanceAtomicityIntegrationTest`)
+- [x] Migrations work on existing installations. (older backup upgraded on open; earlier one-household file adopted)
+- [x] Audit log shows what changed and when. (stored for every change; a screen to read it is LATER)
 
 **4. Usability**
 - [ ] A new household can set up without help.
 - [ ] Daily attendance is quick to enter.
 - [ ] Every salary amount can be explained.
-- [ ] Errors say how to fix the problem.
+- [x] Errors say how to fix the problem. (`BreakItTest`: no technical words on screen)
 - [ ] History and reports are easy to find.
 - [ ] Works on desktop and phone.
 
 **5. Release readiness**
-- [ ] Unit and integration tests pass.
-- [ ] Business-rule edge cases are tested.
+- [x] Unit and integration tests pass. (397 on 2026-10-30)
+- [x] Business-rule edge cases are tested. (`BreakItTest`)
 - [ ] No critical security issue remains.
-- [ ] Runs without internet after installation.
-- [ ] Install and upgrade steps are documented.
-- [ ] Backup and recovery procedures are tested.
+- [x] Runs without internet after installation. (no outside calls; email is optional)
+- [x] Install and upgrade steps are documented. (README)
+- [x] Backup and recovery procedures are tested. (restore drill in tests; Docker restart kept the account)
+
+Still open in section B (honest list): "A new household can set up without help" and "Daily attendance is quick to enter"
+need a real person trying it; "Works on desktop and phone" has the phone menu and calendar fixes but no bottom tab bar;
+"No critical security issue remains" has had one committee review but no outside audit.
 
 ## C. Committee findings and what we do about them
 
@@ -188,3 +194,5 @@ bottom tab bar, litre chips, bigger Still-to-pay (P1b); Hindi (LATER).
 | 2026-10-30 | Doc created from owner's checklist, gap check and both committees | statuses above |
 | 2026-10-30 | P0: earnings breakdown, payments page with corrections, attendance corrections, worker profile, overview, older-backup restore test | 396 tests green |
 | 2026-10-30 | P1: reports and CSV, salary slip, expense module (V10) | 396 tests green |
+| 2026-10-30 | P1b: worker calendar on profile, litre buttons, email reset, proxy setting | 397 tests green |
+| 2026-10-30 | Final check: real jar smoke test of 22 pages (all 200, no error text); Docker image built, healthy, non-root, account survived a container restart | passed |
