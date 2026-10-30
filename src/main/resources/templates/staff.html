@@ -80,7 +80,8 @@
                         <option th:each="c : ${choices}" th:value="${c.name()}" th:text="${c.label}">Monthly salary</option>
                     </select>
                 </div>
-                <div><label for="rate">Amount in ₹</label><input id="rate" type="text" name="rate" inputmode="decimal" placeholder="e.g. 5500" required></div>
+                <div><label for="rate" id="rateLabel">Salary per month (₹)</label><input id="rate" type="text" name="rate" inputmode="decimal" placeholder="e.g. 5500" required>
+                    <div class="meta" id="rateHint" style="margin-top:.25rem"></div></div>
             </div>
             <label>Works on</label>
             <div class="days" style="margin-bottom:1.25rem">
@@ -91,6 +92,32 @@
             </div>
             <button class="btn primary" type="submit">Add worker</button>
         </form>
+        <script>
+            // The job picks the usual pay type, and the amount label always says what is being entered.
+            (function () {
+                var job = document.getElementById('typeId'), pay = document.getElementById('pay'),
+                    label = document.getElementById('rateLabel'), rate = document.getElementById('rate'),
+                    hint = document.getElementById('rateHint');
+                var text = {
+                    MONTHLY_SALARY: ['Salary per month (₹)', 'e.g. 5500', 'A fixed amount for the month.'],
+                    PER_DAY: ['Pay per day worked (₹)', 'e.g. 300', 'Paid only for the days they work.'],
+                    HOURLY: ['Pay per hour (₹)', 'e.g. 120', 'You enter the hours each day on the Today screen.'],
+                    PER_UNIT: ['Price per litre (₹)', 'e.g. 72', 'Pay depends on the litres delivered each day. You enter the litres on the Today screen.'],
+                    PER_TASK: ['Pay per task done (₹)', 'e.g. 50', 'Paid for each task done.']
+                };
+                function refresh() {
+                    var t = text[pay.value] || text.MONTHLY_SALARY;
+                    label.textContent = t[0]; rate.placeholder = t[1]; hint.textContent = t[2];
+                }
+                job.addEventListener('change', function () {
+                    var name = job.options[job.selectedIndex].text.toLowerCase();
+                    if (name.indexOf('milk') >= 0) { pay.value = 'PER_UNIT'; }
+                    refresh();
+                });
+                pay.addEventListener('change', refresh);
+                refresh();
+            })();
+        </script>
     </section>
 </main>
 </body>

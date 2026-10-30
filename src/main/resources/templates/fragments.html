@@ -15,6 +15,9 @@
             <a th:href="@{/staff}" th:classappend="${active == 'staff'} ? 'active'">Staff</a>
             <a th:href="@{/pay}" th:classappend="${active == 'pay'} ? 'active'">Monthly Pay</a>
             <a th:href="@{/backup}" th:classappend="${active == 'backup'} ? 'active'">Backup</a>
+            <form th:if="${loginEnabled == true and !#strings.isEmpty(active)}" th:action="@{/logout}" method="post" style="display:inline">
+                <button type="submit" class="btn quiet" style="color:var(--tertiary);border-color:transparent">Sign out</button>
+            </form>
         </nav>
     </div>
 </header>

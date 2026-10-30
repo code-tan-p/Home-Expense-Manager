@@ -35,6 +35,11 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
+        <!-- The optional household password (see SecurityConfig). Off unless HOME_EXPENSE_PASSWORD is set. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
         <!-- Only the /actuator/health address is switched on (see application.properties), for Docker and hosting checks. -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

@@ -169,6 +169,21 @@ class BreakItTest extends SqliteIntegrationTest {
     }
 
     @Test
+    void aMilkmanMustBePaidByTheLitreAndTheFormExplainsIt() throws Exception {
+        // typeId 3 is the built-in "Milkman" job.
+        mockMvc.perform(post("/staff").param("name", "Salaried Milkman").param("typeId", "3").param("start", "2026-06-01")
+                        .param("pay", "MONTHLY_SALARY").param("rate", "5000").param("days", "MONDAY"))
+                .andExpect(flash().attribute("error", containsString("paid by the litre")));
+        assertThat(workerService.listAllWorkers()).noneMatch(w -> w.getName().equals("Salaried Milkman"));
+        mockMvc.perform(post("/staff").param("name", "Litre Milkman").param("typeId", "3").param("start", "2026-06-01")
+                        .param("pay", "PER_UNIT").param("rate", "72").param("days", "MONDAY"))
+                .andExpect(flash().attribute("ok", containsString("was added")));
+        mockMvc.perform(get("/staff"))
+                .andExpect(content().string(containsString("Price per litre")))
+                .andExpect(content().string(containsString("per litre (pay depends on litres delivered)")));
+    }
+
+    @Test
     void sameNameTwiceIsAllowedButWarned() throws Exception {
         addWorker("Twin Tara", "MONTHLY_SALARY", "1000");
         mockMvc.perform(post("/staff").param("name", "Twin Tara").param("typeId", "1").param("start", "2026-06-01")

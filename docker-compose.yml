@@ -1,14 +1,16 @@
 # Start:  docker compose up -d      Open: http://localhost:8080/      Stop: docker compose down
+# Needs a password. Put it in a file named .env next to this one:   HOME_EXPENSE_PASSWORD=choose-a-long-password
 # Records are kept in the named volume "home-expense-data" and survive restarts and upgrades.
 services:
   home-expense:
     build: .
     ports:
-      # Only this computer can open it. Change to "8080:8080" to allow other devices on your network,
-      # and put a login (for example a reverse proxy with a password) in front first: the program has none.
+      # Only this computer can open it. Change to "8080:8080" to allow other devices on your network.
+      # Do that only with HTTPS in front (for example a reverse proxy), because passwords are sent as typed.
       - "127.0.0.1:8080:8080"
     environment:
       HOME_EXPENSE_TIMEZONE: Asia/Kolkata
+      HOME_EXPENSE_PASSWORD: ${HOME_EXPENSE_PASSWORD:?Set HOME_EXPENSE_PASSWORD in a file named .env (see the top of this file)}
     volumes:
       - home-expense-data:/data
     restart: unless-stopped

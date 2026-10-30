@@ -20,8 +20,9 @@ it works out what each person has earned in the month, exactly to the paisa.
 
 ## Known limits (version 1)
 
-- One household, one computer, no login: the server only accepts connections from this computer,
-  and it refuses a form post that came from another website (`SameOriginFilter`).
+- One household, one shared password (optional), no separate users or roles. Without a password the
+  server only accepts connections from this computer. A form post that came from another website is
+  always refused (`SameOriginFilter`).
 - Closing a month leaves any unpaid amount as "still to pay" (it is not carried to the next month),
   and turns any overpayment into an advance. Reopening a closed month, corrections to payments and
   settlement adjustments have no screens yet; the services exist and are tested.
@@ -145,22 +146,30 @@ program (about a minute), then your browser opens at <http://127.0.0.1:8080/>. C
 **For development:** `./mvnw spring-boot:run`, or build once with `./mvnw -DskipTests package` and run
 `java -jar target/home-expense-manager.jar`.
 
-The server only accepts connections from this computer. There is no login in version 1.
+By default the server only accepts connections from this computer and has no login. To use it from
+other devices, set a password (see **Password** below).
 
 ## Run with Docker
 
-```bash
-docker compose up -d
-```
+1. Create a file named `.env` next to `docker-compose.yml` with one line: `HOME_EXPENSE_PASSWORD=choose-a-long-password`
+2. `docker compose up -d`
+3. Open <http://localhost:8080/> and sign in.
 
-Open <http://localhost:8080/>. Records are kept in the Docker volume `home-expense-data`, so they survive
-restarts and upgrades. To upgrade: `git pull`, then `docker compose up -d --build`. Check that it is
-healthy with `docker compose ps` or <http://localhost:8080/actuator/health>.
+Records are kept in the Docker volume `home-expense-data`, so they survive restarts and upgrades. To upgrade:
+`git pull`, then `docker compose up -d --build`. Check health with `docker compose ps` or
+<http://localhost:8080/actuator/health>. The container runs as a normal (non-root) user. Keep the data volume
+on a local disk, not a network drive (SQLite needs a real local file system).
 
-The compose file publishes the port to this computer only. If you open it to other devices, put a
-password in front of it first (for example a reverse proxy with basic authentication), because the program
-has no login of its own. Keep the data volume on a local disk, not a network drive (SQLite needs a real
-local file system).
+The compose file publishes the port to this computer only. To open it to your home network change the port
+line to `"8080:8080"`, and put HTTPS in front (for example a reverse proxy), because a password typed over
+plain HTTP can be read on the network.
+
+## Password
+
+Set `HOME_EXPENSE_PASSWORD` to turn on a sign-in page. Then every page needs the password, forms carry a
+one-time token, and five wrong tries lock sign-in for ten minutes. A "Sign out" button appears in the top bar.
+The program refuses to start if it is told to listen on a network address (`SERVER_ADDRESS=0.0.0.0`) without a
+password, so it cannot be opened to others by mistake.
 
 ## Settings
 
@@ -170,7 +179,8 @@ Set these as environment variables (or as `--name=value` options):
 | --- | --- | --- |
 | `HOME_EXPENSE_DATA_DIR` | Folder holding all records | `~/.home-expense-manager` |
 | `HOME_EXPENSE_TIMEZONE` | Time zone for "today" and month ends, for example `Asia/Kolkata` | this computer's zone |
-| `SERVER_ADDRESS` | Address to listen on. `0.0.0.0` lets other devices connect | `127.0.0.1` |
+| `HOME_EXPENSE_PASSWORD` | Household password. Empty = no login (this computer only) | empty |
+| `SERVER_ADDRESS` | Address to listen on. `0.0.0.0` lets other devices connect and **requires** a password | `127.0.0.1` |
 | `SERVER_PORT` | Port | `8080` |
 
 ## Backups

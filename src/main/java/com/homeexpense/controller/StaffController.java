@@ -108,6 +108,12 @@ public class StaffController {
             throw new com.homeexpense.exception.BusinessRuleException(
                     "Tick at least one weekday, otherwise this person will never show up on the Today screen.");
         }
+        boolean milkman = workerService.listWorkerTypes().stream()
+                .anyMatch(t -> t.getId().equals(typeId) && t.getName().toLowerCase().contains("milk"));
+        if (milkman && pay != PayChoice.PER_UNIT) {
+            throw new com.homeexpense.exception.BusinessRuleException(
+                    "A milkman is paid by the litre. Choose 'Per litre (milk)' and enter the price of one litre.");
+        }
         var created = workerService.createWorker(new NewWorker(name, typeId, phone, null, start));
         Worker worker = created.worker();
         payService.setPrimaryModel(worker.getId(), pay.model, start);
