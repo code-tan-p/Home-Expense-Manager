@@ -25,30 +25,7 @@
         </div>
 
         <section class="card">
-            <div class="cal" role="grid" th:attr="aria-label=${worker.name} + ' in ' + ${#temporals.format(month, 'MMMM yyyy')}">
-                <div class="cal-head" role="columnheader">Mon</div><div class="cal-head" role="columnheader">Tue</div><div class="cal-head" role="columnheader">Wed</div><div class="cal-head" role="columnheader">Thu</div><div class="cal-head" role="columnheader">Fri</div><div class="cal-head" role="columnheader">Sat</div><div class="cal-head" role="columnheader">Sun</div>
-                <th:block th:each="week : ${cal.weeks}">
-                    <th:block th:each="c : ${week}">
-                        <div class="cal-cell blank" th:if="${c == null}"></div>
-                        <a th:if="${c != null}" class="cal-cell" th:classappend="${c.css}"
-                           th:href="@{/(date=${c.date})}"
-                           th:title="${c.status.label != '' ? c.status.label + (c.detail != '' ? ' · ' + c.detail : '') : ''}">
-                            <span class="cal-day" th:text="${c.day}">1</span>
-                            <span class="cal-note" th:text="${c.detail != '' ? c.detail : c.status.label}"></span>
-                        </a>
-                    </th:block>
-                </th:block>
-            </div>
-
-            <ul class="legend">
-                <li><i class="dot came"></i> Came</li>
-                <li><i class="dot leave"></i> On leave</li>
-                <li><i class="dot holiday"></i> Holiday</li>
-                <li><i class="dot absent"></i> Didn't come</li>
-                <li th:if="${cal.milk}"><i class="dot no-delivery"></i> No delivery</li>
-                <li><i class="dot day-off"></i> Day off</li>
-                <li><i class="dot not-recorded"></i> Not recorded</li>
-            </ul>
+            <th:block th:replace="~{calendar-fragment :: grid(${cal}, ${worker}, ${month})}"></th:block>
         </section>
 
         <section class="card">

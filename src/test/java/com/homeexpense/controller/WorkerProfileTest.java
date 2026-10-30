@@ -31,6 +31,8 @@ class WorkerProfileTest extends SqliteIntegrationTest {
 
         mockMvc.perform(get("/staff/" + id + "/profile")).andExpect(status().isOk())
                 .andExpect(content().string(containsString("Employment history")))
+                .andExpect(content().string(containsString("calendar")))
+                .andExpect(content().string(containsString("cal-cell")))
                 .andExpect(content().string(containsString("₹4000.00")));
         mockMvc.perform(post("/staff/" + id + "/details").param("name", "Profile Cook Renamed").param("phone", "98765")
                         .param("notes", "Allergic to nuts"))

@@ -1,5 +1,9 @@
 package com.homeexpense.controller;
 
+import java.time.Clock;
+import java.time.YearMonth;
+
+import com.homeexpense.service.CalendarService;
 import com.homeexpense.service.PayService;
 import com.homeexpense.service.WorkerService;
 import org.springframework.stereotype.Controller;
@@ -16,8 +20,12 @@ public class WorkerProfileController {
 
     private final WorkerService workers;
     private final PayService payService;
+    private final CalendarService calendar;
+    private final Clock clock;
 
-    public WorkerProfileController(WorkerService workers, PayService payService) {
+    public WorkerProfileController(WorkerService workers, PayService payService, CalendarService calendar, Clock clock) {
+        this.calendar = calendar;
+        this.clock = clock;
         this.workers = workers;
         this.payService = payService;
     }
@@ -25,7 +33,11 @@ public class WorkerProfileController {
     @GetMapping("/staff/{id}/profile")
     public String profile(@PathVariable Long id, Model model) {
         model.addAttribute("page", "staff");
-        model.addAttribute("worker", workers.getWorker(id));
+        var worker = workers.getWorker(id);
+        YearMonth month = YearMonth.now(clock);
+        model.addAttribute("worker", worker);
+        model.addAttribute("month", month);
+        model.addAttribute("cal", calendar.month(worker, month));
         model.addAttribute("employment", workers.employmentHistory(id).reversed());
         model.addAttribute("rates", payService.rateHistory(id).reversed());
         return "worker-profile";
