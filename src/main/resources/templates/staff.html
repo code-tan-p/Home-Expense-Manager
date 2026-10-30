@@ -29,6 +29,7 @@
                 </form>
             </div>
         </div>
+        <p class="meta"><a th:href="@{/staff/{id}/profile(id=${r.worker().id})}">Profile and history</a> · <a th:href="@{/calendar(workerId=${r.worker().id})}">Calendar</a></p>
         <details class="activity" th:if="${r.active()}">
             <summary>Change pay, weekdays or last day</summary>
             <form class="actions" th:action="@{/staff/{id}/pay(id=${r.worker().id})}" method="post" style="margin-top:.75rem">

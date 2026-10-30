@@ -94,6 +94,18 @@ public class WorkerService {
         return new CreateWorkerResult(worker, period, List.copyOf(warnings));
     }
 
+    /** Changes name, phone and notes. The change is kept in the audit history. */
+    public Worker updateDetails(Long workerId, String name, String phone, String notes) {
+        Worker worker = getWorker(workerId);
+        String cleanName = requireText(name, "Enter the worker's name.", 100);
+        String before = "name=" + worker.getName() + "; phone=" + worker.getPhone() + "; notes=" + worker.getNotes();
+        worker.updateDetails(cleanName, blankToNull(phone), blankToNull(notes));
+        Worker saved = workerRepository.save(worker);
+        auditService.record(workerId, ENTITY_WORKER, workerId, "UPDATE", "was: " + before + "; now: name=" + cleanName
+                + "; phone=" + saved.getPhone() + "; notes=" + saved.getNotes());
+        return saved;
+    }
+
     /** Ends the worker's current employment period on {@code lastWorkingDay} (inclusive). */
     public EmploymentPeriod deactivate(Long workerId, LocalDate lastWorkingDay, String reason) {
         Worker worker = getWorker(workerId);

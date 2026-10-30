@@ -50,6 +50,13 @@ public class Worker {
         this.createdAt = createdAt;
     }
 
+    /** Changes the contact details. The job (and so how pay works) stays as it was. */
+    public void updateDetails(String name, String phone, String notes) {
+        this.name = name;
+        this.phone = phone;
+        this.notes = notes;
+    }
+
     public Long getId() {
         return id;
     }
