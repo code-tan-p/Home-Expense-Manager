@@ -6,17 +6,21 @@
 <main>
     <section class="card" style="max-width:26rem;margin:2rem auto">
         <h1>Sign in</h1>
-        <p class="sub">Enter the household password.</p>
-        <div class="flash error" th:if="${param.error}" role="alert">That password is not right. Please try again.</div>
+        <p class="sub">Use the email and password you signed up with.</p>
+        <div class="flash error" th:if="${param.error}" role="alert">That email or password is not right. Please try again.</div>
         <div class="flash error" th:if="${param.locked}" role="alert">Too many wrong tries. Please wait 10 minutes and try again.</div>
         <div class="flash ok" th:if="${param.bye}" role="status">You are signed out.</div>
+        <div class="flash ok" th:if="${param.deleted}" role="status">Your account and records were deleted.</div>
         <form th:action="@{/login}" method="post">
-            <input type="hidden" name="username" value="household">
-            <label for="password">Password</label>
-            <input id="password" type="password" name="password" autocomplete="current-password" autofocus required
+            <label for="username">Email</label>
+            <input id="username" type="email" name="username" autocomplete="username" autofocus required>
+            <label for="password" style="margin-top:.75rem">Password</label>
+            <input id="password" type="password" name="password" autocomplete="current-password" required
                    style="margin-bottom:1rem">
             <button class="btn primary" type="submit">Sign in</button>
         </form>
+        <p class="meta" style="margin-top:1rem">New here? <a th:href="@{/signup}">Create your free account</a>
+            &middot; <a th:href="@{/forgot}">Forgot password</a></p>
     </section>
 </main>
 </body>

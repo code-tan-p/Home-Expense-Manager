@@ -17,6 +17,9 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import com.homeexpense.exception.BusinessRuleException;
+import com.homeexpense.household.AccountStore;
+import com.homeexpense.household.HouseholdContext;
+import com.homeexpense.household.HouseholdDatabases;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -28,12 +31,11 @@ import org.sqlite.SQLiteConfig;
 import org.springframework.stereotype.Service;
 
 /**
- * Backups of the whole database: a download copy, automatic daily copies, and a safe restore.
+ * Backups of one household's records: a download copy, automatic daily copies, and a safe restore.
  *
  * <p>{@code VACUUM INTO} writes one complete, consistent file (the write-ahead log is already folded in),
- * so a single file is a full backup. A restore is staged next to the live database and swapped in at the
- * next start by {@code DataSourceConfig.applyPendingRestore}, because a running database cannot be
- * swapped safely.
+ * so a single file is a full backup. A restore replaces only the signed-in household's file, after the
+ * file has been checked.
  */
 @Service
 public class BackupService {
@@ -46,11 +48,18 @@ public class BackupService {
     private final JdbcTemplate jdbc;
     private final Clock clock;
     private final Path dataDir;
+    private final HouseholdContext households;
+    private final HouseholdDatabases databases;
+    private final AccountStore accounts;
 
-    public BackupService(JdbcTemplate jdbc, Clock clock, @Value("${home-expense.data-dir}") Path dataDir) {
+    public BackupService(JdbcTemplate jdbc, Clock clock, @Value("${home-expense.data-dir}") Path dataDir,
+                         HouseholdContext households, HouseholdDatabases databases, AccountStore accounts) {
         this.jdbc = jdbc;
         this.clock = clock;
         this.dataDir = dataDir;
+        this.households = households;
+        this.databases = databases;
+        this.accounts = accounts;
     }
 
     /** A complete copy of the database, held in memory so no temporary file can be left behind. */
@@ -70,13 +79,14 @@ public class BackupService {
         return "home-expense-" + LocalDate.now(clock) + ".db";
     }
 
-    /** Checks an uploaded backup and stages it to be applied at the next start. */
-    public void stageRestore(InputStream upload) throws IOException {
-        Path check = dataDir.resolve("restore-check.tmp");
+    /** Checks an uploaded backup, then swaps it in for the signed-in household at once. The old records are kept as a safety copy. */
+    public void restore(InputStream upload) throws IOException {
+        long household = households.current();
+        Path check = dataDir.resolve("restore-check-" + household + ".tmp");
         try {
             Files.copy(upload, check, StandardCopyOption.REPLACE_EXISTING);
             validate(check);
-            Files.move(check, dataDir.resolve(PENDING_RESTORE), StandardCopyOption.REPLACE_EXISTING);
+            databases.replace(household, check);
         } finally {
             Files.deleteIfExists(check);
         }
@@ -133,19 +143,32 @@ public class BackupService {
         }
     }
 
-    /** Every day at 02:00 a copy is kept in the data folder; the newest {@value #KEEP_AUTOMATIC} are kept. */
+    /** Every day at 02:00 each household gets a copy in the data folder; the newest {@value #KEEP_AUTOMATIC} are kept. */
     @Scheduled(cron = "${home-expense.auto-backup-cron:0 0 2 * * *}")
     public void automaticBackup() {
+        for (long household : accounts.householdIds()) {
+            if (!databases.exists(household)) {
+                continue;
+            }
+            try {
+                households.run(household, () -> backUpCurrentHousehold(household));
+            } catch (RuntimeException e) {
+                log.warn("Automatic backup failed for household {}.", household, e);
+            }
+        }
+    }
+
+    public void backUpCurrentHousehold(long household) {
         try {
-            Path folder = dataDir.resolve("backups");
+            Path folder = dataDir.resolve("backups").resolve(String.valueOf(household));
             Files.createDirectories(folder);
             Path target = folder.resolve("home-expense-" + LocalDate.now(clock) + ".db");
             Files.deleteIfExists(target);
             writeCopy(target);
             pruneAutomaticBackups(folder);
             log.info("Automatic backup written to {}", target);
-        } catch (IOException | RuntimeException e) {
-            log.warn("Automatic backup failed. Download a backup by hand from the Backup page.", e);
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
         }
     }
 

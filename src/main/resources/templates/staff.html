@@ -111,7 +111,11 @@
                 }
                 job.addEventListener('change', function () {
                     var name = job.options[job.selectedIndex].text.toLowerCase();
-                    if (name.indexOf('milk') >= 0) { pay.value = 'PER_UNIT'; }
+                    if (name.indexOf('milk') >= 0) {
+                        pay.value = 'PER_UNIT';
+                        // A milkman delivers every day, so tick all seven weekdays.
+                        document.querySelectorAll('input[name=days]').forEach(function (box) { box.checked = true; });
+                    }
                     refresh();
                 });
                 pay.addEventListener('change', refresh);

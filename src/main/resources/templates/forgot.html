@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Forgot password')}"></head>
+<body>
+<header th:replace="~{fragments :: header('forgot')}"></header>
+<main>
+    <section class="card" style="max-width:26rem;margin:2rem auto">
+        <h1>Forgot your password?</h1>
+        <p class="sub">Type the recovery code that was shown when you created your account, and choose a new password.</p>
+        <div th:replace="~{fragments :: messages}"></div>
+        <form th:action="@{/forgot}" method="post">
+            <div class="form-grid" style="grid-template-columns:1fr">
+                <div><label for="email">Email</label>
+                    <input id="email" type="email" name="email" autocomplete="username" required autofocus></div>
+                <div><label for="code">Recovery code</label>
+                    <input id="code" name="code" placeholder="ABCD-EFGH-JKLM-NPQR" autocomplete="off" required></div>
+                <div><label for="password">New password (at least 8 characters)</label>
+                    <input id="password" type="password" name="password" minlength="8" autocomplete="new-password" required></div>
+                <div><label for="confirm">Type it again</label>
+                    <input id="confirm" type="password" name="confirm" minlength="8" autocomplete="new-password" required></div>
+            </div>
+            <button class="btn primary" type="submit" style="margin-top:1rem">Set new password</button>
+        </form>
+        <p class="meta" style="margin-top:1rem">Lost the code too? Only the person who runs this server can reset your account.
+            <a th:href="@{/login}">Back to sign in</a></p>
+    </section>
+</main>
+</body>
+</html>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Create your account')}"></head>
+<body>
+<header th:replace="~{fragments :: header('signup')}"></header>
+<main>
+    <section class="card" style="max-width:26rem;margin:2rem auto">
+        <h1>Create your account</h1>
+        <p class="sub">Keep track of the people who help at home, and what you owe them. Your records are private to you.</p>
+        <div th:replace="~{fragments :: messages}"></div>
+        <form th:action="@{/signup}" method="post">
+            <div class="form-grid" style="grid-template-columns:1fr">
+                <div><label for="name">Your name</label>
+                    <input id="name" name="name" maxlength="60" autocomplete="name" required autofocus></div>
+                <div><label for="email">Email</label>
+                    <input id="email" type="email" name="email" maxlength="120" autocomplete="username" required></div>
+                <div><label for="password">Password (at least 8 characters)</label>
+                    <input id="password" type="password" name="password" minlength="8" autocomplete="new-password" required></div>
+                <div><label for="confirm">Type the password again</label>
+                    <input id="confirm" type="password" name="confirm" minlength="8" autocomplete="new-password" required></div>
+            </div>
+            <button class="btn primary" type="submit" style="margin-top:1rem">Create account</button>
+        </form>
+        <p class="meta" style="margin-top:1rem">Already have an account? <a th:href="@{/login}">Sign in</a></p>
+    </section>
+</main>
+</body>
+</html>

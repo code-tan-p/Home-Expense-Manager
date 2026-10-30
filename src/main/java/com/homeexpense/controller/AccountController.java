@@ -1,15 +1,10 @@
 package com.homeexpense.controller;
 
-import java.util.List;
-
+import com.homeexpense.household.HouseholdUser;
 import com.homeexpense.service.AccountService;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,7 +12,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-/** The "Account" screen: create, change or turn off the household password, and sign out. */
+/** The "Account" screen: your details, change password, delete everything. */
 @Controller
 public class AccountController {
 
@@ -28,52 +23,47 @@ public class AccountController {
     }
 
     @GetMapping("/account")
-    public String account(Model model) {
+    public String account(Model model, Authentication authentication) {
         model.addAttribute("page", "account");
-        model.addAttribute("on", accounts.passwordIsOn());
-        model.addAttribute("serverManaged", accounts.managedByServer());
-        model.addAttribute("firstRun", accounts.setupPending());
+        HouseholdUser user = user(authentication);
+        model.addAttribute("accountName", user == null ? "" : user.getDisplayName());
+        model.addAttribute("accountEmail", user == null ? "" : user.getUsername());
+        model.addAttribute("canChange", user != null);
         return "account";
-    }
-
-    /** Creates the password. The person who created it is signed in straight away. */
-    @PostMapping("/account/password/new")
-    public String create(@RequestParam String password, @RequestParam String confirm, HttpServletRequest request,
-                         HttpServletResponse response, RedirectAttributes flash) {
-        accounts.setPassword(password, confirm);
-        signIn(request, response);
-        flash.addFlashAttribute("ok", "Password created. From now on this program asks for it.");
-        return "redirect:/";
     }
 
     @PostMapping("/account/password/change")
     public String change(@RequestParam String current, @RequestParam String password, @RequestParam String confirm,
-                         HttpServletRequest request, HttpServletResponse response, RedirectAttributes flash) {
-        accounts.changePassword(current, password, confirm);
-        signIn(request, response);
+                         Authentication authentication, RedirectAttributes flash) {
+        accounts.changePassword(required(authentication).getUserId(), current, password, confirm);
         flash.addFlashAttribute("ok", "Password changed.");
         return "redirect:/account";
     }
 
-    @PostMapping("/account/password/off")
-    public String off(@RequestParam String current, RedirectAttributes flash) {
-        accounts.turnOff(current);
-        flash.addFlashAttribute("ok", "Password turned off. Anyone who can open this address can now see the records.");
-        return "redirect:/account";
+    @PostMapping("/account/delete")
+    public String delete(@RequestParam String password, @RequestParam(defaultValue = "") String sure,
+                         Authentication authentication, HttpServletRequest request, RedirectAttributes flash) {
+        if (sure.isBlank()) {
+            flash.addFlashAttribute("error", "Tick the box to confirm that you want to delete everything.");
+            return "redirect:/account";
+        }
+        accounts.deleteAccount(required(authentication).getUserId(), password);
+        if (request.getSession(false) != null) {
+            request.getSession(false).invalidate();
+        }
+        SecurityContextHolder.clearContext();
+        return "redirect:/login?deleted";
     }
 
-    @PostMapping("/account/skip")
-    public String skip(RedirectAttributes flash) {
-        accounts.skipSetup();
-        flash.addFlashAttribute("ok", "No password for now. You can create one any time on the Account page.");
-        return "redirect:/";
+    private static HouseholdUser user(Authentication authentication) {
+        return authentication != null && authentication.getPrincipal() instanceof HouseholdUser u ? u : null;
     }
 
-    private static void signIn(HttpServletRequest request, HttpServletResponse response) {
-        SecurityContext context = SecurityContextHolder.createEmptyContext();
-        context.setAuthentication(new UsernamePasswordAuthenticationToken(AccountService.USERNAME, null,
-                List.of(new SimpleGrantedAuthority("ROLE_USER"))));
-        SecurityContextHolder.setContext(context);
-        new HttpSessionSecurityContextRepository().saveContext(context, request, response);
+    private static HouseholdUser required(Authentication authentication) {
+        HouseholdUser user = user(authentication);
+        if (user == null) {
+            throw new com.homeexpense.exception.BusinessRuleException("Please sign in first.");
+        }
+        return user;
     }
 }

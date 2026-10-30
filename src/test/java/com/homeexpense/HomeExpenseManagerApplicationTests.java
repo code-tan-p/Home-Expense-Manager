@@ -3,6 +3,7 @@ package com.homeexpense;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 
 class HomeExpenseManagerApplicationTests extends SqliteIntegrationTest {
@@ -10,8 +11,8 @@ class HomeExpenseManagerApplicationTests extends SqliteIntegrationTest {
     @Value("${server.address}")
     private String serverAddress;
 
-    @Value("${spring.datasource.url}")
-    private String datasourceUrl;
+    @Autowired
+    private com.homeexpense.household.HouseholdDatabases databases;
 
     @Test
     void contextLoads() {
@@ -24,9 +25,9 @@ class HomeExpenseManagerApplicationTests extends SqliteIntegrationTest {
 
     @Test
     void testsUseTemporaryDatabaseNotTheRealOne() {
-        // Windows paths use backslashes while the configured URL uses a forward slash before the file name.
-        assertThat(datasourceUrl.replace('\\', '/'))
-                .isEqualTo(("jdbc:sqlite:" + DATA_DIR.resolve("home-expense.db")).replace('\\', '/'));
-        assertThat(datasourceUrl).doesNotContain(".home-expense-manager");
+        databases.open(1);
+        assertThat(databases.file(1)).isRegularFile();
+        assertThat(databases.file(1).startsWith(DATA_DIR)).isTrue();
+        assertThat(databases.file(1).toString()).doesNotContain(".home-expense-manager");
     }
 }

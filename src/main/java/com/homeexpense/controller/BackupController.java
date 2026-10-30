@@ -53,10 +53,10 @@ public class BackupController {
             throw new BusinessRuleException("Choose the backup file first.");
         }
         try (InputStream in = file.getInputStream()) {
-            backupService.stageRestore(in);
+            backupService.restore(in);
         }
-        flash.addFlashAttribute("ok", "Backup checked and received. Close the program and open it again to finish restoring. "
-                + "Your current records are kept as a safety copy.");
+        flash.addFlashAttribute("ok", "Backup restored. Your records are now the ones in that file. "
+                + "The records you had before are kept as a safety copy on the server.");
         return "redirect:/backup";
     }
 }

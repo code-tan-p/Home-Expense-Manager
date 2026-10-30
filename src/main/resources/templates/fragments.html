@@ -10,14 +10,15 @@
 <header class="topbar" th:fragment="header(active)">
     <div class="topbar-inner">
         <div class="brand">Home Expense <span>Manager</span></div>
-        <nav aria-label="Main" th:unless="${active == 'login'}">
+        <nav aria-label="Main" th:if="${signedInName != null or active == 'today' or active == 'calendar' or active == 'staff' or active == 'pay' or active == 'backup' or active == 'account'}">
             <a th:href="@{/}" th:classappend="${active == 'today'} ? 'active'">Today</a>
             <a th:href="@{/calendar}" th:classappend="${active == 'calendar'} ? 'active'">Calendar</a>
             <a th:href="@{/staff}" th:classappend="${active == 'staff'} ? 'active'">Staff</a>
             <a th:href="@{/pay}" th:classappend="${active == 'pay'} ? 'active'">Monthly Pay</a>
             <a th:href="@{/backup}" th:classappend="${active == 'backup'} ? 'active'">Backup</a>
-            <a th:href="@{/account}" th:classappend="${active == 'account'} ? 'active'">Account</a>
-            <form th:if="${passwordOn == true and !#strings.isEmpty(active)}" th:action="@{/logout}" method="post" style="display:inline">
+            <a th:href="@{/account}" th:classappend="${active == 'account'} ? 'active'"
+               th:text="${signedInName != null} ? ${signedInName} : 'Account'">Account</a>
+            <form th:if="${signedInName != null}" th:action="@{/logout}" method="post" style="display:inline">
                 <button type="submit" class="btn quiet" style="color:var(--tertiary);border-color:transparent">Sign out</button>
             </form>
         </nav>
@@ -26,9 +27,6 @@
 <div th:fragment="messages">
     <div class="flash ok" th:if="${ok}" th:text="${ok}" role="status"></div>
     <div class="flash error" th:if="${error}" th:text="${error}" role="alert"></div>
-    <div class="flash notice" th:if="${passwordOn == false and page == 'today'}" role="note">
-        No password is set, so anyone who can open this address can see and change the records.
-        <a th:href="@{/account}">Create a password</a></div>
 </div>
 </body>
 </html>

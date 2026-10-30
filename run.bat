@@ -1,6 +1,6 @@
 @echo off
 rem Starts Home Expense Manager and opens it in your browser. Close this window to stop it.
-rem The first time, the program asks you to create a password (or skip it).
+rem The first time, create your account on the sign-up page.
 cd /d "%~dp0"
 where java >nul 2>nul
 if errorlevel 1 (

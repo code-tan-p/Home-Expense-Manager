@@ -76,7 +76,8 @@ public class PayController {
         YearMonth shown = month == null ? YearMonth.now(clock) : InputRules.requireMonth(month, LocalDate.now(clock));
         List<PayRow> rows = new ArrayList<>();
         for (Worker worker : workerService.listAllWorkers()) {
-            if (!workerService.isEmployedOn(worker.getId(), shown.atEndOfMonth())
+            var summary = calendarService.summary(worker, shown);
+            if (summary.from() == null && !workerService.isEmployedOn(worker.getId(), shown.atEndOfMonth())
                     && !workerService.isEmployedOn(worker.getId(), shown.atDay(1))) {
                 continue;
             }
@@ -86,7 +87,6 @@ public class PayController {
             boolean milk = payService.primaryModelOn(worker.getId(), shown.atEndOfMonth())
                     .or(() -> payService.primaryModelOn(worker.getId(), shown.atDay(1)))
                     .filter(m -> m == com.homeexpense.model.PaymentModel.PER_UNIT).isPresent();
-            var summary = calendarService.summary(worker, shown);
             Long litres = milk ? summary.litresMilli() : null;
             try {
                 rows.add(new PayRow(worker, earningsService.preview(worker.getId(), shown), null, paid, advance,

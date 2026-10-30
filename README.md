@@ -146,14 +146,13 @@ program (about a minute), then your browser opens at <http://127.0.0.1:8080/>. C
 **For development:** `./mvnw spring-boot:run`, or build once with `./mvnw -DskipTests package` and run
 `java -jar target/home-expense-manager.jar`.
 
-By default the server only accepts connections from this computer and has no login. To use it from
-other devices, set a password (see **Password** below).
+By default the server only accepts connections from this computer. To let other people use it, set
+`SERVER_ADDRESS=0.0.0.0` and put HTTPS in front (see **Accounts** below).
 
 ## Run with Docker
 
-1. Create a file named `.env` next to `docker-compose.yml` with one line: `HOME_EXPENSE_PASSWORD=choose-a-long-password`
-2. `docker compose up -d`
-3. Open <http://localhost:8080/> and sign in.
+1. `docker compose up -d`
+2. Open <http://localhost:8080/> and choose **Create your free account**.
 
 Records are kept in the Docker volume `home-expense-data`, so they survive restarts and upgrades. To upgrade:
 `git pull`, then `docker compose up -d --build`. Check health with `docker compose ps` or
@@ -164,12 +163,20 @@ The compose file publishes the port to this computer only. To open it to your ho
 line to `"8080:8080"`, and put HTTPS in front (for example a reverse proxy), because a password typed over
 plain HTTP can be read on the network.
 
-## Password
+## Accounts: many people, each with a private household
 
-Set `HOME_EXPENSE_PASSWORD` to turn on a sign-in page. Then every page needs the password, forms carry a
-one-time token, and five wrong tries lock sign-in for ten minutes. A "Sign out" button appears in the top bar.
-The program refuses to start if it is told to listen on a network address (`SERVER_ADDRESS=0.0.0.0`) without a
-password, so it cannot be opened to others by mistake.
+Anyone can **sign up** with a name, email and password. Each person gets a household of their own, with its own
+database file (`<data folder>/households/<id>.db`), so one household can never see another's records. Sign-in
+details live separately in `<data folder>/accounts.db`.
+
+- **Recovery:** sign-up shows a one-time recovery code. **Forgot password** needs the email and that code and then
+  gives a new code. There is no email service, so a person who loses both must be reset by whoever runs the server.
+- **Safety:** forms carry a one-time token, five wrong sign-ins lock that email and that address for ten minutes,
+  sign-ups are limited to five per address per hour and `HOME_EXPENSE_MAX_HOUSEHOLDS` in total (default 500).
+- **Delete my account** on the Account page removes the household's file and backups.
+- **Records made with the older one-household version** are kept: the first person to sign up takes them over.
+- Behind HTTPS, set `HOME_EXPENSE_SECURE_COOKIE=true`.
+- Email is not verified and is not used to send anything.
 
 ## Settings
 
@@ -177,20 +184,22 @@ Set these as environment variables (or as `--name=value` options):
 
 | Variable | Meaning | Default |
 | --- | --- | --- |
-| `HOME_EXPENSE_DATA_DIR` | Folder holding all records | `~/.home-expense-manager` |
+| `HOME_EXPENSE_DATA_DIR` | Folder holding all records (one file per household) | `~/.home-expense-manager` |
 | `HOME_EXPENSE_TIMEZONE` | Time zone for "today" and month ends, for example `Asia/Kolkata` | this computer's zone |
-| `HOME_EXPENSE_PASSWORD` | Household password. Empty = no login (this computer only) | empty |
-| `SERVER_ADDRESS` | Address to listen on. `0.0.0.0` lets other devices connect and **requires** a password | `127.0.0.1` |
+| `HOME_EXPENSE_SECURE_COOKIE` | `true` once the site is served over HTTPS | `false` |
+| `HOME_EXPENSE_MAX_HOUSEHOLDS` | How many households may sign up | `500` |
+| `SERVER_ADDRESS` | Address to listen on. `0.0.0.0` lets other devices connect (use HTTPS) | `127.0.0.1` |
 | `SERVER_PORT` | Port | `8080` |
 
 ## Backups
 
-- **By hand:** the **Backup** screen downloads one file with everything. Keep copies away from this computer.
-- **Automatic:** every day at 02:00 the program saves a copy in `<data folder>/backups` and keeps the
+- **By hand:** the **Backup** screen downloads one file with your household's records. Keep copies away from this computer.
+- **Automatic:** every day at 02:00 the program saves a copy of each household in `<data folder>/backups/<id>` and keeps the
   newest 14. These are on the same computer, so they protect against mistakes, not against losing the
   computer.
-- **Restore:** choose a downloaded backup on the Backup screen, then close and start the program again.
-  The file is checked first (a damaged file or one from a newer version is refused).
+- **Restore:** choose a downloaded backup on the Backup screen. The file is checked first (a damaged file or one
+  from a newer version is refused), then it replaces only your household's records at once. The records you had
+  before are kept beside it as `<id>.db.before-restore`.
 
 ## Testing
 

@@ -56,7 +56,7 @@
                 <span class="badge off" th:if="${a.record().outcome.name() == 'PARTIAL'}">Partly done</span>
                 <span class="badge off" th:if="${a.record().outcome.name() == 'NOT_DONE' and a.record().absenceReason.name() == 'APPROVED_LEAVE'}">On leave</span>
                 <span class="badge off" th:if="${a.record().outcome.name() == 'NOT_DONE' and a.record().absenceReason.name() == 'HOUSEHOLD_HOLIDAY'}"
-                      th:text="${milk ? 'No delivery' : 'Our holiday'}">Our holiday</span>
+                      th:text="${milk ? 'No delivery' : 'Holiday (we are away)'}">Our holiday</span>
                 <span class="badge wait" th:if="${a.record().outcome.name() == 'NOT_DONE' and a.record().absenceReason.name() == 'UNAUTHORIZED_ABSENCE'}">Didn't come</span>
                 <form th:if="${a.record().absenceReason != null and a.record().absenceReason.name() == 'UNAUTHORIZED_ABSENCE' and a.record().deductionDecision.name() == 'PENDING'}"
                       th:action="@{/work/deduction}" method="post" class="actions">
@@ -92,10 +92,10 @@
             <input type="hidden" name="workerId" th:value="${day.worker().id}">
             <span class="meta">Didn't work today:</span>
             <button class="btn" name="reason" value="HOUSEHOLD_HOLIDAY" type="submit"
-                    th:text="${milk ? 'No delivery' : 'Our holiday'}">Our holiday</button>
-            <button class="btn" name="reason" value="APPROVED_LEAVE" type="submit" th:unless="${milk}">On leave</button>
+                    th:text="${milk ? 'No delivery' : 'Holiday (we are away)'}">Our holiday</button>
+            <button class="btn" name="reason" value="APPROVED_LEAVE" type="submit" th:unless="${milk}">Leave (they asked)</button>
             <button class="btn caution" name="reason" value="UNAUTHORIZED_ABSENCE" type="submit"
-                    title="Didn't come and had not asked. This can reduce pay." th:unless="${milk}">Didn't come</button>
+                    title="Didn't come and had not asked. This can reduce pay." th:unless="${milk}">Absent (did not tell)</button>
         </form>
 
         <div class="activity" th:if="${!day.unscheduled().isEmpty()}">

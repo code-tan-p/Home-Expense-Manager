@@ -267,23 +267,17 @@ class BreakItTest extends SqliteIntegrationTest {
         mockMvc.perform(multipart("/backup/restore").file(new MockMultipartFile("file", "e.db", "application/octet-stream", new byte[0]))
                         .header("Referer", "http://localhost/backup"))
                 .andExpect(flash().attributeExists("error"));
-        assertThat(Files.exists(DATA_DIR.resolve("restore-pending.db"))).isFalse();
 
-        try {
-            byte[] real = backupService.snapshot();
-            mockMvc.perform(multipart("/backup/restore").file(new MockMultipartFile("file", "ok.db", "application/octet-stream", real)))
-                    .andExpect(flash().attributeExists("ok"));
-            assertThat(Files.exists(DATA_DIR.resolve("restore-pending.db"))).isTrue();
-        } finally {
-            // A pending restore would replace the test database the next time a context starts.
-            Files.deleteIfExists(DATA_DIR.resolve("restore-pending.db"));
-        }
+        byte[] real = backupService.snapshot();
+        mockMvc.perform(multipart("/backup/restore").file(new MockMultipartFile("file", "ok.db", "application/octet-stream", real)))
+                .andExpect(flash().attributeExists("ok"));
+        mockMvc.perform(get("/staff")).andExpect(status().isOk());
     }
 
     @Test
     void automaticBackupWritesACopyAndTheDownloadLeavesNoTempFile() throws Exception {
-        backupService.automaticBackup();
-        try (var files = Files.list(DATA_DIR.resolve("backups"))) {
+        backupService.backUpCurrentHousehold(1);
+        try (var files = Files.list(DATA_DIR.resolve("backups").resolve("1"))) {
             assertThat(files.toList()).anyMatch(p -> p.getFileName().toString().startsWith("home-expense-"));
         }
         byte[] copy = backupService.snapshot();

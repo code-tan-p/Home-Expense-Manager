@@ -175,7 +175,7 @@ public class CalendarService {
             String detail = litres > 0 ? plain(BigDecimal.valueOf(litres, 3)) + " L"
                     : minutes > 0 ? plain(BigDecimal.valueOf(minutes).divide(BigDecimal.valueOf(60), 2, java.math.RoundingMode.HALF_UP)) + " h"
                     : "";
-            return new DayCell(d, partial ? Status.PARTIAL : Status.CAME, detail);
+            return new DayCell(d, partial || off != null ? Status.PARTIAL : Status.CAME, detail);
         }
         if (off != null) {
             return new DayCell(d, off, "");
@@ -215,7 +215,11 @@ public class CalendarService {
                 case HOLIDAY -> holiday++;
                 case NO_DELIVERY -> noDelivery++;
                 case ABSENT -> absent++;
-                case NOT_RECORDED -> notRecorded++;
+                case NOT_RECORDED -> {
+                    if (!c.date().equals(today)) {
+                        notRecorded++;
+                    }
+                }
                 case DAY_OFF -> dayOff++;
                 default -> { }
             }
