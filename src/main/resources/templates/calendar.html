@@ -36,7 +36,8 @@
                 <span th:if="${cal.summary.soFar}">(so far)</span>
             </p>
             <ul class="stats">
-                <li><strong th:text="${cal.summary.came}">0</strong> days came</li>
+                <li><strong th:text="${cal.summary.came}">0</strong> days came
+                    <span th:if="${cal.summary.attendancePercent != null}" th:text="'(' + ${cal.summary.attendancePercent} + '% attendance)'"></span></li>
                 <li th:if="${cal.summary.leave > 0}"><strong th:text="${cal.summary.leave}">0</strong> on leave</li>
                 <li th:if="${cal.summary.holiday > 0}"><strong th:text="${cal.summary.holiday}">0</strong> holiday</li>
                 <li th:if="${cal.summary.noDelivery > 0}"><strong th:text="${cal.summary.noDelivery}">0</strong> no delivery</li>

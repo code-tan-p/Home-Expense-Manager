@@ -55,6 +55,19 @@ class AttendanceHistoryTest extends SqliteIntegrationTest {
                 .andExpect(content().string(containsString("1.5 L")))
                 .andExpect(content().string(containsString("Replaced or undone")))
                 .andExpect(content().string(containsString("Corrected: typed 2 by mistake")));
+        // attendance percentage, missing days and the extra-work form
+        mockMvc.perform(get("/attendance/" + id).param("month", "2026-04"))
+                .andExpect(content().string(containsString("Attendance this month")))
+                .andExpect(content().string(containsString("100%")))
+                .andExpect(content().string(containsString("Days not recorded yet")))
+                .andExpect(content().string(containsString("Add extra or missed work")));
+        mockMvc.perform(post("/attendance/" + id + "/extra").param("date", "2026-04-07").param("taskId", "1").param("litres", "1")
+                        .param("confirm", "yes").param("note", "carried guests luggage"))
+                .andExpect(flash().attribute("ok", containsString("Extra work recorded")));
+        mockMvc.perform(get("/attendance/" + id).param("month", "2026-04"))
+                .andExpect(content().string(containsString("carried guests luggage")));
+        mockMvc.perform(post("/attendance/" + id + "/extra").header("Referer", "http://localhost/attendance/" + id)
+                        .param("date", "2026-04-08").param("taskId", "1")).andExpect(flash().attributeExists("error"));
         mockMvc.perform(get("/calendar").param("workerId", id.toString()).param("month", "2026-04"))
                 .andExpect(content().string(containsString("1.5 L")))
                 .andExpect(content().string(containsString("Records and corrections")));

@@ -77,10 +77,29 @@ public class CalendarService {
         public boolean hasPeriod() {
             return from != null;
         }
+
+        /** Days came out of the days they were expected and answered for (came, leave, did not come). Holidays and unrecorded days are left out. Null when there is nothing to compare. */
+        public Integer getAttendancePercent() {
+            int expected = came + leave + absent;
+            return expected == 0 ? null : (int) Math.round(came * 100.0 / expected);
+        }
     }
 
     public record MonthCalendar(Worker worker, YearMonth month, boolean milk, boolean hourly,
                                 List<List<DayCell>> weeks, Summary summary) {
+
+        /** Days that should have a record and have none yet. */
+        public List<LocalDate> missingDays() {
+            List<LocalDate> missing = new ArrayList<>();
+            for (List<DayCell> week : weeks) {
+                for (DayCell c : week) {
+                    if (c != null && c.status() == Status.NOT_RECORDED) {
+                        missing.add(c.date());
+                    }
+                }
+            }
+            return missing;
+        }
     }
 
     private final DailyWorkService dailyWorkService;

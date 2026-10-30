@@ -23,7 +23,7 @@
         <h2>Salary for <span th:text="${#temporals.format(month, 'MMMM yyyy')}">October 2026</span></h2>
         <div class="tablewrap">
         <table class="breakdown">
-            <tr><th>Worker</th><th>Counted</th><th>Came</th><th>Leave</th><th>Holiday</th><th>Absent</th><th>Litres</th><th>Earned</th><th>Paid</th><th>To pay</th></tr>
+            <tr><th>Worker</th><th>Counted</th><th>Came</th><th>Leave</th><th>Holiday</th><th>Absent</th><th>Attendance</th><th>Litres</th><th>Earned</th><th>Paid</th><th>To pay</th></tr>
             <tr th:each="r : ${rows}">
                 <td><a th:href="@{/staff/{id}/profile(id=${r.worker().id})}" th:text="${r.worker().name}">Name</a>
                     <span class="meta" th:text="${r.worker().workerType.name}">Maid</span>
@@ -33,13 +33,14 @@
                 <td th:text="${r.summary().leave()}">0</td>
                 <td th:text="${r.summary().holiday() + r.summary().noDelivery()}">0</td>
                 <td th:text="${r.summary().absent()}">0</td>
+                <td th:text="${r.summary().attendancePercent != null} ? ${r.summary().attendancePercent} + '%' : '-'">100%</td>
                 <td th:text="${r.summary().litresMilli() > 0} ? ${r.summary().litres} : '-'">-</td>
                 <td class="num" th:text="${T(com.homeexpense.money.Money).format(r.earnedPaise())}">₹0.00</td>
                 <td class="num" th:text="${T(com.homeexpense.money.Money).format(r.paidPaise())}">₹0.00</td>
                 <td class="num" th:text="${T(com.homeexpense.money.Money).format(r.stillToPayPaise())}">₹0.00</td>
             </tr>
             <tr>
-                <td colspan="7"><strong>Total</strong></td>
+                <td colspan="8"><strong>Total</strong></td>
                 <td class="num" th:text="${T(com.homeexpense.money.Money).format(totalEarned)}">₹0.00</td>
                 <td class="num" th:text="${T(com.homeexpense.money.Money).format(totalPaid)}">₹0.00</td>
                 <td class="num" th:text="${T(com.homeexpense.money.Money).format(totalEarned - totalPaid)}">₹0.00</td>
