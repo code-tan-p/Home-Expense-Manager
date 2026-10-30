@@ -188,3 +188,6 @@ main p a:not(.btn):hover, main li a:not(.btn):hover { color: var(--primary); }
     .card { box-shadow: none; border: 0; padding: 0; }
     main { max-width: none; padding: 0; }
 }
+
+.chips { display: inline-flex; gap: .35rem; flex-wrap: wrap; }
+.btn.chip { padding: .35rem .7rem; min-height: 2.75rem; }

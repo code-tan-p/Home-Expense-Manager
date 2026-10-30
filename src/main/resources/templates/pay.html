@@ -56,7 +56,7 @@
                 Earned <strong th:text="${T(com.homeexpense.money.Money).format(r.earnings().totalPaise())}">₹0.00</strong> ·
                 Paid so far <strong th:text="${T(com.homeexpense.money.Money).format(r.paidPaise())}">₹0.00</strong> ·
                 <span th:if="${r.stillToPayPaise() >= 0}">Still to pay
-                    <strong th:text="${T(com.homeexpense.money.Money).format(r.stillToPayPaise())}">₹0.00</strong></span>
+                    <strong class="total" th:text="${T(com.homeexpense.money.Money).format(r.stillToPayPaise())}">₹0.00</strong></span>
                 <span th:if="${r.stillToPayPaise() < 0}">Paid
                     <strong th:text="${T(com.homeexpense.money.Money).format(-r.stillToPayPaise())}">₹0.00</strong> in advance</span>
             </p>

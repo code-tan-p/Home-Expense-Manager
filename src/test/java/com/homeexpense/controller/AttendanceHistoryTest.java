@@ -42,6 +42,9 @@ class AttendanceHistoryTest extends SqliteIntegrationTest {
 
         mockMvc.perform(get("/attendance/" + id).param("month", "2026-04")).andExpect(status().isOk())
                 .andExpect(content().string(containsString("2 L")));
+        // the Today screen offers one-tap litre buttons for a milkman
+        mockMvc.perform(get("/").param("date", "2026-04-07")).andExpect(status().isOk())
+                .andExpect(content().string(containsString("1.5 L")));
 
         Long recordId = dailyWork.history(id, day, day).getFirst().getId();
         mockMvc.perform(post("/attendance/" + id + "/correct").param("recordId", recordId.toString()).param("outcome", "COMPLETED")

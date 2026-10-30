@@ -81,6 +81,10 @@
                 <input type="hidden" name="entryId" th:value="${a.entry().id}">
                 <input class="small" type="text" inputmode="decimal" name="quantity" placeholder="Litres" required
                        th:if="${milk}" aria-label="Litres delivered">
+                <span class="chips" th:if="${milk}">
+                    <button class="btn chip" type="button" th:each="q : ${T(java.util.List).of('0.5','1','1.5','2')}" th:text="${q} + ' L'"
+                            th:attr="onclick='this.form.quantity.value=&quot;' + ${q} + '&quot;;this.form.requestSubmit();'">1 L</button>
+                </span>
                 <input class="small" type="text" inputmode="decimal" name="hours" placeholder="Hours" required
                        th:if="${hourly}" aria-label="Hours worked">
                 <button class="btn primary" type="submit" th:text="${milk ? 'Save litres' : 'Done'}">Done</button>
