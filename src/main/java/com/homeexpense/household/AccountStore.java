@@ -46,6 +46,31 @@ public class AccountStore {
         jdbc.execute("CREATE TABLE IF NOT EXISTS app_user (id INTEGER PRIMARY KEY AUTOINCREMENT, "
                 + "email TEXT NOT NULL UNIQUE, name TEXT NOT NULL, password_hash TEXT NOT NULL, recovery_hash TEXT NOT NULL, "
                 + "household_id INTEGER NOT NULL UNIQUE REFERENCES household(id), created_at TEXT NOT NULL)");
+        jdbc.execute("CREATE TABLE IF NOT EXISTS password_reset (user_id INTEGER PRIMARY KEY REFERENCES app_user(id), "
+                + "code_hash TEXT NOT NULL, expires_at TEXT NOT NULL, tries INTEGER NOT NULL DEFAULT 0)");
+    }
+
+    /** A one-time code sent by email: kept only as a hash, valid for a short time, with a limit on wrong tries. */
+    public record ResetCode(long userId, String codeHash, java.time.Instant expiresAt, int tries) {
+    }
+
+    public void saveResetCode(long userId, String codeHash, java.time.Instant expiresAt) {
+        jdbc.update("INSERT OR REPLACE INTO password_reset (user_id, code_hash, expires_at, tries) VALUES (?,?,?,0)",
+                userId, codeHash, expiresAt.toString());
+    }
+
+    public Optional<ResetCode> findResetCode(long userId) {
+        return jdbc.query("SELECT * FROM password_reset WHERE user_id = ?",
+                (r, i) -> new ResetCode(r.getLong("user_id"), r.getString("code_hash"),
+                        java.time.Instant.parse(r.getString("expires_at")), r.getInt("tries")), userId).stream().findFirst();
+    }
+
+    public void countResetTry(long userId) {
+        jdbc.update("UPDATE password_reset SET tries = tries + 1 WHERE user_id = ?", userId);
+    }
+
+    public void deleteResetCode(long userId) {
+        jdbc.update("DELETE FROM password_reset WHERE user_id = ?", userId);
     }
 
     public int householdCount() {
@@ -106,6 +131,7 @@ public class AccountStore {
     }
 
     public synchronized void deleteHousehold(long householdId) {
+        jdbc.update("DELETE FROM password_reset WHERE user_id IN (SELECT id FROM app_user WHERE household_id = ?)", householdId);
         jdbc.update("DELETE FROM app_user WHERE household_id = ?", householdId);
         jdbc.update("DELETE FROM household WHERE id = ?", householdId);
     }

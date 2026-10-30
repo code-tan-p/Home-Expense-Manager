@@ -20,6 +20,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import com.homeexpense.service.MailService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -61,6 +64,8 @@ class SignUpTest {
     private MockMvc mockMvc;
     @Autowired
     private HouseholdDatabases databases;
+    @MockitoBean
+    private MailService mail;
 
     /** A person who is signed in, with the recovery code they were shown. */
     private record Person(String email, String password, MockHttpSession session, String recoveryCode) {
@@ -275,5 +280,47 @@ class SignUpTest {
         mockMvc.perform(post("/login").session(s).with(from("10.4.0.1")).param("username", hal.email()).param("password", hal.password())
                         .param("_csrf", token(mockMvc.perform(get("/login").session(s)).andReturn())))
                 .andExpect(redirectedUrl("/login?error"));
+    }
+
+    @Test
+    void emailedCodeResetsThePasswordOnceAndNeverRevealsWhoHasAnAccount() throws Exception {
+        org.mockito.Mockito.when(mail.enabled()).thenReturn(true);
+        Person ida = signUp("Ida");
+        MockHttpSession s = new MockHttpSession();
+        String t = token(mockMvc.perform(get("/forgot").session(s)).andReturn());
+        mockMvc.perform(get("/forgot").session(s)).andExpect(content().string(containsString("Email me a code")));
+
+        // an unknown email gets the same answer and nothing is sent
+        mockMvc.perform(post("/forgot/email").session(s).with(from("10.5.0.1")).param("_csrf", t).param("email", "nobody@example.com"))
+                .andExpect(flash().attribute("ok", containsString("If that email has an account")));
+        org.mockito.Mockito.verify(mail, org.mockito.Mockito.never()).send(org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString());
+
+        mockMvc.perform(post("/forgot/email").session(s).with(from("10.5.0.2")).param("_csrf", t).param("email", ida.email()))
+                .andExpect(flash().attribute("ok", containsString("If that email has an account")));
+        ArgumentCaptor<String> text = ArgumentCaptor.forClass(String.class);
+        org.mockito.Mockito.verify(mail).send(org.mockito.ArgumentMatchers.eq(ida.email()), org.mockito.ArgumentMatchers.anyString(), text.capture());
+        Matcher m = Pattern.compile("code is (\\d{6})").matcher(text.getValue());
+        assertThat(m.find()).isTrue();
+        String code = m.group(1);
+
+        mockMvc.perform(post("/forgot/code").session(s).with(from("10.5.0.3")).param("_csrf", t).param("email", ida.email())
+                        .param("code", code.equals("000000") ? "111111" : "000000").param("password", "fresh-pass-77").param("confirm", "fresh-pass-77"))
+                .andExpect(flash().attribute("error", containsString("wrong or has expired")));
+        MvcResult done = mockMvc.perform(post("/forgot/code").session(s).with(from("10.5.0.4")).param("_csrf", t).param("email", ida.email())
+                        .param("code", code).param("password", "fresh-pass-77").param("confirm", "fresh-pass-77"))
+                .andExpect(redirectedUrl("/")).andReturn();
+        MockHttpSession active = (MockHttpSession) done.getRequest().getSession(false);
+        mockMvc.perform(get("/staff").session(active)).andExpect(status().isOk());
+
+        // the code works only once
+        mockMvc.perform(post("/forgot/code").session(s).with(from("10.5.0.5")).param("_csrf", t).param("email", ida.email())
+                        .param("code", code).param("password", "other-pass-88").param("confirm", "other-pass-88"))
+                .andExpect(flash().attribute("error", containsString("wrong or has expired")));
+        // the new password signs in, the old does not
+        MockHttpSession again = new MockHttpSession();
+        String t2 = token(mockMvc.perform(get("/login").session(again)).andReturn());
+        mockMvc.perform(post("/login").session(again).with(from("10.5.0.6")).param("username", ida.email()).param("password", "fresh-pass-77").param("_csrf", t2))
+                .andExpect(status().is3xxRedirection());
     }
 }

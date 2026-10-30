@@ -5,6 +5,7 @@ import com.homeexpense.config.AttemptLimiter;
 import com.homeexpense.exception.BusinessRuleException;
 import com.homeexpense.household.AccountStore;
 import com.homeexpense.service.AccountService;
+import com.homeexpense.service.MailService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -25,10 +26,12 @@ public class LoginController {
     private final SessionSignIn sessions;
     private final AttemptLimiter signUps;
     private final AttemptLimiter recovery;
+    private final MailService mail;
 
     public LoginController(AccountService accounts, AccountStore store, SessionSignIn sessions,
                            @Qualifier("signUpLimiter") AttemptLimiter signUps,
-                           @Qualifier("recoveryLimiter") AttemptLimiter recovery) {
+                           @Qualifier("recoveryLimiter") AttemptLimiter recovery, MailService mail) {
+        this.mail = mail;
         this.accounts = accounts;
         this.store = store;
         this.sessions = sessions;
@@ -66,6 +69,7 @@ public class LoginController {
     @GetMapping("/forgot")
     public String forgotForm(Model model) {
         model.addAttribute("page", "");
+        model.addAttribute("mailEnabled", mail.enabled());
         return "forgot";
     }
 
@@ -91,6 +95,44 @@ public class LoginController {
         flash.addFlashAttribute("recoveryCode", AccountService.pretty(reset.recoveryCode()));
         flash.addFlashAttribute("reset", true);
         return "redirect:/welcome";
+    }
+
+    /** Emails a code. The answer is the same whether or not the email has an account. */
+    @PostMapping("/forgot/email")
+    public String forgotByEmail(@RequestParam String email, HttpServletRequest request, RedirectAttributes flash) {
+        String address = SecurityConfig.addressKey(request);
+        String who = SecurityConfig.emailKey(email);
+        if (recovery.blocked(address) || recovery.blocked(who)) {
+            throw new BusinessRuleException("Too many tries. Please wait 10 minutes and try again.");
+        }
+        recovery.record(address);
+        recovery.record(who);
+        accounts.sendResetCode(email, mail);
+        flash.addFlashAttribute("ok", "If that email has an account, we have sent a six-digit code. It works for 15 minutes.");
+        return "redirect:/forgot";
+    }
+
+    @PostMapping("/forgot/code")
+    public String forgotWithCode(@RequestParam String email, @RequestParam String code, @RequestParam String password,
+                                 @RequestParam String confirm, HttpServletRequest request, HttpServletResponse response,
+                                 RedirectAttributes flash) {
+        String address = SecurityConfig.addressKey(request);
+        String who = SecurityConfig.emailKey(email);
+        if (recovery.blocked(address) || recovery.blocked(who)) {
+            throw new BusinessRuleException("Too many wrong tries. Please wait 10 minutes and try again.");
+        }
+        AccountStore.UserRecord user;
+        try {
+            user = accounts.resetWithEmailCode(email, code, password, confirm);
+        } catch (BusinessRuleException e) {
+            recovery.record(address);
+            recovery.record(who);
+            throw e;
+        }
+        recovery.clear(who);
+        sessions.signIn(request, response, user);
+        flash.addFlashAttribute("ok", "Your password is changed and you are signed in.");
+        return "redirect:/";
     }
 
     /** Shown once after sign-up or recovery: the new recovery code. */

@@ -4,10 +4,36 @@
 <body>
 <header th:replace="~{fragments :: header('forgot')}"></header>
 <main>
-    <section class="card" style="max-width:26rem;margin:2rem auto">
+    <section class="card" style="max-width:26rem;margin:2rem auto" th:if="${mailEnabled}">
         <h1>Forgot your password?</h1>
-        <p class="sub">Type the recovery code that was shown when you created your account, and choose a new password.</p>
+        <p class="sub">We can email you a six-digit code.</p>
         <div th:replace="~{fragments :: messages}"></div>
+        <form th:action="@{/forgot/email}" method="post">
+            <label for="mail-email">Email</label>
+            <input id="mail-email" type="email" name="email" autocomplete="username" required>
+            <button class="btn primary" type="submit" style="margin-top:.75rem">Email me a code</button>
+        </form>
+        <h2 style="margin-top:1.5rem">I have the code</h2>
+        <form th:action="@{/forgot/code}" method="post">
+            <div class="form-grid" style="grid-template-columns:1fr">
+                <div><label for="code-email">Email</label>
+                    <input id="code-email" type="email" name="email" autocomplete="username" required></div>
+                <div><label for="mailcode">Code from the email</label>
+                    <input id="mailcode" name="code" inputmode="numeric" autocomplete="one-time-code" required></div>
+                <div><label for="pw1">New password (at least 8 characters)</label>
+                    <input id="pw1" type="password" name="password" minlength="8" autocomplete="new-password" required></div>
+                <div><label for="pw2">Type it again</label>
+                    <input id="pw2" type="password" name="confirm" minlength="8" autocomplete="new-password" required></div>
+            </div>
+            <button class="btn primary" type="submit" style="margin-top:.75rem">Set new password</button>
+        </form>
+    </section>
+
+    <section class="card" style="max-width:26rem;margin:2rem auto">
+        <h1 th:unless="${mailEnabled}">Forgot your password?</h1>
+        <h2 th:if="${mailEnabled}">Use your recovery code instead</h2>
+        <p class="sub">Type the recovery code that was shown when you created your account, and choose a new password.</p>
+        <th:block th:unless="${mailEnabled}"><div th:replace="~{fragments :: messages}"></div></th:block>
         <form th:action="@{/forgot}" method="post">
             <div class="form-grid" style="grid-template-columns:1fr">
                 <div><label for="email">Email</label>

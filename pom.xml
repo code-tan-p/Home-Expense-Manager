@@ -35,7 +35,12 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
-        <!-- The optional household password (see SecurityConfig). Off unless HOME_EXPENSE_PASSWORD is set. -->
+        <!-- Sends the one-time reset code by email when SPRING_MAIL_HOST is set (see MailService). -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+        <!-- Sign-in for many households (see SecurityConfig). -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>

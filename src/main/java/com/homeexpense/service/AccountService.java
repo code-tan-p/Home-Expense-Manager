@@ -98,6 +98,44 @@ public class AccountService {
         return new SignedUp(store.findById(user.id()).orElseThrow(), fresh);
     }
 
+    /**
+     * Emails a six-digit code that works for fifteen minutes. Always looks the same to the caller whether or not the
+     * email has an account, so nobody can find out who is registered.
+     */
+    public void sendResetCode(String email, MailService mail) {
+        if (!mail.enabled()) {
+            return;
+        }
+        UserRecord user = store.findByEmail(cleanEmail(email)).orElse(null);
+        if (user == null) {
+            return;
+        }
+        String code = String.format("%06d", random.nextInt(1_000_000));
+        store.saveResetCode(user.id(), encoder.encode(code), java.time.Instant.now().plus(java.time.Duration.ofMinutes(15)));
+        mail.send(user.email(), "Your Home Expense Manager code",
+                "Hello " + user.name() + ",\n\nYour code is " + code + ". It works for 15 minutes.\n"
+                        + "If you did not ask for it, ignore this email: your password has not changed.\n");
+    }
+
+    /** Sets a new password for someone who typed the emailed code. */
+    public UserRecord resetWithEmailCode(String email, String code, String password, String confirm) {
+        String failure = "That code is wrong or has expired. Ask for a new one.";
+        UserRecord user = store.findByEmail(cleanEmail(email)).orElse(null);
+        var saved = user == null ? null : store.findResetCode(user.id()).orElse(null);
+        if (saved == null || saved.tries() >= 5 || saved.expiresAt().isBefore(java.time.Instant.now())) {
+            throw new BusinessRuleException(failure);
+        }
+        String given = code == null ? "" : code.replace(" ", "");
+        if (!encoder.matches(given, saved.codeHash())) {
+            store.countResetTry(user.id());
+            throw new BusinessRuleException(failure);
+        }
+        checkNewPassword(password, confirm);
+        store.updatePassword(user.id(), encoder.encode(password));
+        store.deleteResetCode(user.id());
+        return store.findById(user.id()).orElseThrow();
+    }
+
     /** Deletes the account and every record of the household for good. */
     public void deleteAccount(long userId, String password) {
         UserRecord user = store.findById(userId).orElseThrow(() -> new BusinessRuleException("This account no longer exists."));
