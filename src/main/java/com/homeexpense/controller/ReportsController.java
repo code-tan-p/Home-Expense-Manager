@@ -13,7 +13,9 @@ import com.homeexpense.model.finance.Payment;
 import com.homeexpense.repository.PaymentRepository;
 import com.homeexpense.repository.PaymentVoidRepository;
 import com.homeexpense.service.CalendarService;
+import com.homeexpense.dto.FinanceDtos;
 import com.homeexpense.service.EarningsService;
+import com.homeexpense.service.SettlementService;
 import com.homeexpense.service.WorkerService;
 import com.homeexpense.money.Money;
 import org.springframework.http.ContentDisposition;
@@ -44,9 +46,12 @@ public class ReportsController {
     private final PaymentRepository payments;
     private final PaymentVoidRepository voids;
     private final Clock clock;
+    private final SettlementService settlements;
 
     public ReportsController(WorkerService workers, CalendarService calendar, EarningsService earnings,
-                             PaymentRepository payments, PaymentVoidRepository voids, Clock clock) {
+                             PaymentRepository payments, PaymentVoidRepository voids, Clock clock,
+                             SettlementService settlements) {
+        this.settlements = settlements;
         this.workers = workers;
         this.calendar = calendar;
         this.earnings = earnings;
@@ -67,19 +72,49 @@ public class ReportsController {
         model.addAttribute("totalEarned", rows.stream().mapToLong(SalaryRow::earnedPaise).sum());
         model.addAttribute("totalPaid", rows.stream().mapToLong(SalaryRow::paidPaise).sum());
         model.addAttribute("payments", paymentsBetween(shown.atDay(1), shown.atEndOfMonth()));
+        List<AdvanceRow> advances = advanceRows();
+        model.addAttribute("advances", advances);
+        model.addAttribute("advanceBalance", advances.stream().mapToLong(a -> a.balance().balancePaise()).sum());
         return "reports";
+    }
+
+    /** An advance with the worker it was given to. */
+    public record AdvanceRow(Worker worker, FinanceDtos.AdvanceBalance balance) {
+    }
+
+    private List<AdvanceRow> advanceRows() {
+        List<AdvanceRow> rows = new ArrayList<>();
+        for (Worker worker : workers.listAllWorkers()) {
+            for (FinanceDtos.AdvanceBalance balance : settlements.advances(worker.getId())) {
+                rows.add(new AdvanceRow(worker, balance));
+            }
+        }
+        return rows;
+    }
+
+    @GetMapping("/reports/advances.csv")
+    public ResponseEntity<byte[]> advancesCsv() {
+        StringBuilder csv = new StringBuilder("Worker,Given on,Amount (Rs),Taken back (Rs),Still to take back (Rs),Note\r\n");
+        for (AdvanceRow r : advanceRows()) {
+            var a = r.balance().advance();
+            csv.append(cell(r.worker().getName())).append(',').append(a.getGivenOn()).append(',').append(Money.plain(a.getAmountPaise()))
+                    .append(',').append(Money.plain(r.balance().recoveredPaise())).append(',').append(Money.plain(r.balance().balancePaise()))
+                    .append(',').append(cell(a.getNote())).append("\r\n");
+        }
+        return csv("advances.csv", csv);
     }
 
     @GetMapping("/reports/salary.csv")
     public ResponseEntity<byte[]> salaryCsv(@RequestParam(required = false) YearMonth month) {
         YearMonth shown = month(month);
-        StringBuilder csv = new StringBuilder("Worker,Job,From,To,Days came,Leave,Holiday,Did not come,Litres,Hours,Earned (Rs),Paid (Rs),Still to pay (Rs),Month closed\r\n");
+        StringBuilder csv = new StringBuilder("Worker,Job,From,To,Days came,Leave,Holiday,Did not come,Litres,Hours,Attendance %,Earned (Rs),Paid (Rs),Still to pay (Rs),Month closed\r\n");
         for (SalaryRow r : rows(shown)) {
             var s = r.summary();
             csv.append(cell(r.worker().getName())).append(',').append(cell(r.worker().getWorkerType().getName())).append(',')
                     .append(s.from() == null ? "" : s.from()).append(',').append(s.to() == null ? "" : s.to()).append(',')
                     .append(s.came()).append(',').append(s.leave()).append(',').append(s.holiday() + s.noDelivery()).append(',')
                     .append(s.absent()).append(',').append(s.getLitres()).append(',').append(s.getHours()).append(',')
+                    .append(s.getAttendancePercent() == null ? "" : s.getAttendancePercent()).append(',')
                     .append(Money.plain(r.earnedPaise())).append(',').append(Money.plain(r.paidPaise())).append(',')
                     .append(Money.plain(r.stillToPayPaise())).append(',').append(r.closed() ? "yes" : "no").append("\r\n");
         }

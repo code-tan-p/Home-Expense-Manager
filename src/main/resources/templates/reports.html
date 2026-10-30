@@ -15,6 +15,7 @@
         <button class="btn" type="button" onclick="window.print()">Print</button>
         <a class="btn" th:href="@{/reports/salary.csv(month=${month})}">Download salary (CSV)</a>
         <a class="btn" th:href="@{/reports/payments.csv(from=${month.atDay(1)}, to=${month.atEndOfMonth()})}">Download payments (CSV)</a>
+        <a class="btn" th:href="@{/reports/advances.csv}">Download advances (CSV)</a>
     </p>
 
     <section class="card empty" th:if="${rows.isEmpty()}"><p>Nobody was working in this month.</p></section>
@@ -51,6 +52,28 @@
             <span th:each="r : ${rows}"><a th:href="@{/reports/slip/{id}(id=${r.worker().id}, month=${month})}"
                th:text="'Salary slip: ' + ${r.worker().name}">slip</a> · </span>
         </p>
+    </section>
+
+    <section class="card" th:if="${!rows.isEmpty()}">
+        <h2>Still to pay</h2>
+        <p class="meta">Total still to pay for the month: <strong th:text="${T(com.homeexpense.money.Money).format(totalEarned - totalPaid)}">₹0.00</strong>.
+            Advances still to take back: <strong th:text="${T(com.homeexpense.money.Money).format(advanceBalance)}">₹0.00</strong>.</p>
+    </section>
+
+    <section class="card" th:if="${!advances.isEmpty()}">
+        <h2>Advances</h2>
+        <div class="tablewrap">
+        <table class="breakdown">
+            <tr><th>Worker</th><th>Given</th><th>Amount</th><th>Taken back</th><th>Still to take back</th></tr>
+            <tr th:each="a : ${advances}">
+                <td th:text="${a.worker().name}">Name</td>
+                <td th:text="${#temporals.format(a.balance().advance().givenOn, 'd MMM yyyy')}">1 Oct 2026</td>
+                <td class="num" th:text="${T(com.homeexpense.money.Money).format(a.balance().advance().amountPaise)}">₹0.00</td>
+                <td class="num" th:text="${T(com.homeexpense.money.Money).format(a.balance().recoveredPaise())}">₹0.00</td>
+                <td class="num" th:text="${T(com.homeexpense.money.Money).format(a.balance().balancePaise())}">₹0.00</td>
+            </tr>
+        </table>
+        </div>
     </section>
 
     <section class="card" th:if="${!payments.isEmpty()}">

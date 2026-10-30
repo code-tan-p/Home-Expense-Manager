@@ -46,6 +46,13 @@ class ReportsTest extends SqliteIntegrationTest {
                 .param("to", LocalDate.now().toString())).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         assertThat(payments).contains("500.00").contains("CASH");
 
+        mockMvc.perform(post("/pay/advance").param("workerId", id.toString()).param("amount", "700").param("method", "CASH")
+                .param("month", YearMonth.now().toString()));
+        mockMvc.perform(get("/reports").param("month", "2026-04")).andExpect(content().string(containsString("Advances still to take back")))
+                .andExpect(content().string(containsString("Download advances (CSV)")));
+        assertThat(mockMvc.perform(get("/reports/advances.csv")).andExpect(status().isOk()).andReturn().getResponse().getContentAsString())
+                .contains("700.00");
+        assertThat(csv).contains("Attendance %");
         mockMvc.perform(get("/reports/slip/" + id).param("month", "2026-04")).andExpect(status().isOk())
                 .andExpect(content().string(containsString("Salary slip"))).andExpect(content().string(containsString("Balance")));
         mockMvc.perform(get("/reports/payments.csv").param("from", "2026-05-02").param("to", "2026-05-01")).andExpect(status().isBadRequest());
