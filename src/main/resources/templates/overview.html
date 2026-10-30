@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Overview')}"></head>
+<body>
+<header th:replace="~{fragments :: header('overview')}"></header>
+<main>
+    <h1>Overview</h1>
+    <p class="sub" th:text="${#temporals.format(month, 'MMMM yyyy')} + ' so far'">October 2026 so far</p>
+
+    <div th:replace="~{fragments :: messages}"></div>
+
+    <section class="card empty" th:if="${staffCount == 0}">
+        <p>Nobody is working here yet. Add the people who help at home, such as your maid, milkman or cook.</p>
+        <a class="btn primary" th:href="@{/staff}">Add your first worker</a>
+    </section>
+
+    <section class="stats" th:if="${staffCount > 0}">
+        <div class="card stat"><span class="meta">People working</span><strong class="total" th:text="${staffCount}">3</strong></div>
+        <div class="card stat"><span class="meta">Still to record today</span>
+            <strong class="total" th:text="${pending}">0</strong>
+            <a th:href="@{/}" th:if="${pending > 0}">Record now</a></div>
+        <div class="card stat"><span class="meta">Earned this month</span>
+            <strong class="total" th:text="${T(com.homeexpense.money.Money).format(earnedPaise)}">₹0.00</strong></div>
+        <div class="card stat"><span class="meta">Paid this month</span>
+            <strong class="total" th:text="${T(com.homeexpense.money.Money).format(paidPaise)}">₹0.00</strong></div>
+        <div class="card stat"><span class="meta">Still to pay</span>
+            <strong class="total" th:text="${T(com.homeexpense.money.Money).format(outstandingPaise)}">₹0.00</strong>
+            <a th:href="@{/pay}">Open Monthly Pay</a></div>
+        <div class="card stat"><span class="meta">Advances to take back</span>
+            <strong class="total" th:text="${T(com.homeexpense.money.Money).format(advancePaise)}">₹0.00</strong></div>
+    </section>
+
+    <section class="card" th:if="${!alerts.isEmpty()}">
+        <h2>Needs attention</h2>
+        <ul>
+            <li th:each="a : ${alerts}"><strong th:text="${a.worker().name}">Name</strong>:
+                <span th:text="${a.message()}">message</span>
+                <a th:href="@{/calendar(workerId=${a.worker().id})}">Calendar</a></li>
+        </ul>
+    </section>
+
+    <section class="card" th:if="${!recent.isEmpty()}">
+        <h2>Recent payments</h2>
+        <ul>
+            <li th:each="p : ${recent}">
+                <strong th:text="${T(com.homeexpense.money.Money).format(p.amountPaise)}">₹0.00</strong> to
+                <span th:text="${p.worker.name}">Name</span> on
+                <span th:text="${#temporals.format(p.paidOn, 'd MMM')}">1 Jan</span>
+                (<span th:text="${p.method}">CASH</span>)
+            </li>
+        </ul>
+    </section>
+</main>
+</body>
+</html>
