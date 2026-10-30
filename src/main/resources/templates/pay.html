@@ -105,7 +105,8 @@
                 <input class="small" type="text" name="reference" maxlength="60" placeholder="Reference (optional)" aria-label="Payment reference, optional">
                 <button class="btn primary" type="submit">Record payment</button>
             </form>
-            <p class="meta"><a th:href="@{/pay/history/{id}(id=${r.worker().id})}">Payments and corrections</a></p>
+            <p class="meta"><a th:href="@{/pay/history/{id}(id=${r.worker().id})}">Payments and corrections</a> ·
+                <a th:href="@{/settlement/{id}(id=${r.worker().id}, month=${month})}">Month-end, advances and corrections</a></p>
             <p class="meta" th:if="${r.advancePaise() > 0}">
                 Advance to take back from later pay:
                 <strong th:text="${T(com.homeexpense.money.Money).format(r.advancePaise())}">₹0.00</strong>
