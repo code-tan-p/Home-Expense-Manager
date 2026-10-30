@@ -251,3 +251,7 @@ To use a different folder (for example, for a trial run):
 
 Stop the application before running `./mvnw clean verify`: the build deletes the
 compiled classes a running application is using, which makes its pages fail.
+
+## Release checklist
+
+What is done, what is missing and what the review committees found: [docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md).
