@@ -37,12 +37,12 @@ Status words: **DONE** (screen and test exist), **BACKEND** (service exists, no 
 | Daily dashboard, mark done / absent / leave / holiday | DONE | `HomeController`, `index.html` |
 | Partial attendance, hours, litres | DONE | Today screen inputs |
 | Undo | DONE | `/work/undo` |
-| Extra / unscheduled work form | BACKEND | `DailyWorkService.recordUnscheduled` (still no form) |
+| Extra / unscheduled work form | DONE | "Add extra or missed work" on `/attendance/{id}` |
 | Correction history, edit by audited correction | DONE | `/attendance/{id}`, `AttendanceHistoryTest` |
 | Notes per record | DONE | note box on the correction form |
-| Missing attendance list | PARTIAL | counts only; dedicated list MISSING |
+| Missing attendance list | DONE | "Days not recorded yet" on `/attendance/{id}` |
 | Calendar view per worker | DONE | `/calendar`, and on each worker profile (litres for milk, hours for hourly, leave and holiday otherwise) |
-| Attendance percentage | MISSING | |
+| Attendance percentage | DONE | calendar, attendance page, reports |
 
 ### 3. Earnings engine (P0)
 | Item | Status | Where / note |
@@ -52,8 +52,10 @@ Status words: **DONE** (screen and test exist), **BACKEND** (service exists, no 
 | Monthly preview, missing-attendance warnings | DONE | `/pay` |
 | Finalize and lock | DONE | `/pay/close`, `FinalizedEarningsGuard` |
 | Line-by-line breakdown screen | DONE | "How this was worked out" on Monthly Pay and the salary slip |
-| Reopen with audit, review lines, confirm unrecorded | BACKEND | `EarningsService.reopenEarnings/reviewLine/confirmUnrecorded` |
-| Bonuses, deductions, overtime, custom components | MISSING | `FinancialAdjustment` exists; UI LATER |
+| Reopen with audit | DONE | `/settlement/{id}` (reopens the settlement and its earnings together) |
+| Review lines, confirm unrecorded | BACKEND | `EarningsService.reviewLine/confirmUnrecorded` |
+| Bonuses and deductions | DONE | "Bonus, deduction or correction" on `/settlement/{id}` (`SettlementScreenTest`) |
+| Overtime, custom components | LATER | |
 
 ### 4. Payments, advances, settlements (P0)
 | Item | Status | Where / note |
@@ -61,10 +63,10 @@ Status words: **DONE** (screen and test exist), **BACKEND** (service exists, no 
 | Partial and full payments, date, method | DONE | `/pay/payment` |
 | Reference on payment | DONE | Monthly Pay form and payments page |
 | Advance given, balance shown | DONE | `/pay/advance` |
-| Advance recovery history | BACKEND | `AdvanceRecovery` |
+| Advance recovery history | DONE | advances table on `/settlement/{id}` and `/reports` |
 | Payment reversal / correction | DONE | `/pay/history/{id}`, `PaymentHistoryTest` |
-| Settlement history, reopen | BACKEND | `SettlementService` |
-| Carry-forward | BACKEND | `SettlementService.correctCarry` |
+| Settlement history, reopen | DONE | `/settlement/{id}`, `SettlementScreenTest` |
+| Carry-forward | PARTIAL | shown on the month-end screen; changing the carry target has no form (LATER) |
 | Printable salary slip | DONE | `/reports/slip/{id}` (print or save as PDF); receipts LATER |
 
 ### 5. Household expenses (P1)
@@ -77,7 +79,7 @@ Status words: **DONE** (screen and test exist), **BACKEND** (service exists, no 
 ### 6. Dashboard (P1)
 | Item | Status |
 | --- | --- |
-| Staff count, pending, month earned / paid / outstanding / advances, recent payments, alerts | DONE (`/overview`, `OverviewTest`) |
+| Staff count, pending, month earned / paid / outstanding / advances, spending, recent payments, alerts | DONE (`/overview`, `OverviewTest`, `BackupHistoryTest`) |
 | Charts and trends | LATER |
 
 ### 7. Backup, recovery, integrity (P0)
@@ -86,15 +88,16 @@ Status words: **DONE** (screen and test exist), **BACKEND** (service exists, no 
 | Backup download, validated restore with confirmation | DONE | `BackupService` |
 | Automatic daily backup, keep 14, version check | DONE | per household |
 | Foreign keys, migrations, transactions, audit log, no silent delete | DONE | Flyway V1-V9 |
-| Backup history list | MISSING | |
+| Backup history list | DONE | `/backup` lists the nightly copies, `BackupHistoryTest` |
 | Off-site copy, encryption, recovery drill | LATER / MISSING | drill added in P0-7 |
 
 ### 8. User experience (P0/P1)
 | Item | Status |
 | --- | --- |
 | Clean navigation, mobile layout, confirmations, undo, empty states, validation, messages, rupee format | DONE |
-| Search and filter | MISSING |
-| Dark mode, shortcuts, Hindi / Punjabi | LATER |
+| Search and filter | DONE | staff search box, expenses by month and category |
+| Dark mode | DONE | follows the device setting |
+| Shortcuts, Hindi / Punjabi | LATER |
 | Phone: one-tap litre buttons, bigger Still-to-pay, one-row scrolling menu | DONE |
 | Phone: bottom tab bar | LATER |
 
@@ -113,7 +116,7 @@ Status words: **DONE** (screen and test exist), **BACKEND** (service exists, no 
 ### 10. Reports and exports (P1)
 | Item | Status |
 | --- | --- |
-| Monthly salary and payments reports, month and date range | DONE (`/reports`, `ReportsTest`); attendance percentage and advance report LATER |
+| Monthly salary, payments, still-to-pay, advances and attendance reports, month and date range | DONE (`/reports`, `ReportsTest`) |
 | CSV export (salary, payments, expenses), print-friendly pages | DONE |
 | PDF | LATER (browser "Save as PDF" from the print page) |
 
@@ -160,7 +163,7 @@ Tick each with its proof (test name or manual check).
 - [x] Install and upgrade steps are documented. (README)
 - [x] Backup and recovery procedures are tested. (restore drill in tests; Docker restart kept the account)
 
-Still open in section B (honest list): "A new household can set up without help" and "Daily attendance is quick to enter"
+Still open in section B (honest list; the list of unbuilt features is in section E): "A new household can set up without help" and "Daily attendance is quick to enter"
 need a real person trying it; "Works on desktop and phone" has the phone menu and calendar fixes but no bottom tab bar;
 "No critical security issue remains" has had one committee review but no outside audit.
 
@@ -195,4 +198,19 @@ bottom tab bar, litre chips, bigger Still-to-pay (P1b); Hindi (LATER).
 | 2026-10-30 | P0: earnings breakdown, payments page with corrections, attendance corrections, worker profile, overview, older-backup restore test | 396 tests green |
 | 2026-10-30 | P1: reports and CSV, salary slip, expense module (V10) | 396 tests green |
 | 2026-10-30 | P1b: worker calendar on profile, litre buttons, email reset, proxy setting | 397 tests green |
+| 2026-10-30 | Remaining list: month-end screen, advances, bonus/deduction form, attendance %, missing days, extra-work form, advances report, backup history, spending on overview, staff search, dark mode | 400 tests green |
 | 2026-10-30 | Final check: real jar smoke test of 22 pages (all 200, no error text); Docker image built, healthy, non-root, account survived a container restart | passed |
+
+## E. Not built yet (decided, with reason)
+| Item | Why not yet |
+| --- | --- |
+| Fixed + variable pay together | Changes the pay engine and its tests; a bonus can be added as a correction meanwhile |
+| Worker-specific holidays | Needs a new table and changes to calendar and earnings; household holidays and per-day leave work today |
+| Bottom tab bar on phones | The one-row scrolling menu is in place; a tab bar is a layout rewrite |
+| Hindi / Punjabi | Large mechanical job (all screens); best done once the wording is final |
+| Email verification at sign-up | Needs the owner's mail settings first (reset by email is built) |
+| Real PDF export | The salary slip prints to PDF from the browser; a PDF library would add a dependency |
+| Payment receipts, UPI reference as its own field | The reference box on a payment covers a UPI number; separate receipt page LATER |
+| Audit-log screen | Every change is stored; a screen to read it is LATER |
+| Loading states | Pages are server-rendered and fast; double-click protection exists on payments |
+| Budgets, trends, charts, encryption, PIN, overtime | P2 by the roadmap |

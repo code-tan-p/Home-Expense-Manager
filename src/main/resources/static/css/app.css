@@ -204,7 +204,7 @@ main p a:not(.btn):hover, main li a:not(.btn):hover { color: var(--primary); }
         --muted: #a7a597;
         --line: #38433a;
     }
-    .topbar { background: #0f1310; color: #ece9df; }
+    .topbar { background: #0f1310; color: #ece9df; } .brand span { color: #b9d3a3; }
     nav a { color: #ece9df; }
     nav a.active { background: #4a5a48; color: #fff; }
     .btn.primary, .btn.accent, .chip.active, .days input:checked + span, .avatar { color: #10150f; }
