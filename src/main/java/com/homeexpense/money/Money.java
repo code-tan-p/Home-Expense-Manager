@@ -58,6 +58,11 @@ public final class Money {
     }
 
     /** Formats paise with exactly two decimal places, for example ₹115.38 or -₹5.00. */
+    /** Rupees as plain text for an input box, for example 1250.50. */
+    public static String plain(long paise) {
+        return java.math.BigDecimal.valueOf(paise, 2).toPlainString();
+    }
+
     public static String format(long paise) {
         BigDecimal rupees = toRupees(paise);
         return rupees.signum() < 0 ? "-₹" + rupees.negate().toPlainString() : "₹" + rupees.toPlainString();

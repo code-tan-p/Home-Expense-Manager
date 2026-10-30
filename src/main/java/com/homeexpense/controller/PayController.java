@@ -108,14 +108,16 @@ public class PayController {
     /** A payment is dated today for the current month, or the last day of an earlier month. */
     @PostMapping("/pay/payment")
     public String pay(@RequestParam Long workerId, @RequestParam String amount, @RequestParam PaymentMethod method,
-                      @RequestParam YearMonth month, RedirectAttributes flash) {
+                      @RequestParam YearMonth month, @RequestParam(defaultValue = "") String reference,
+                      RedirectAttributes flash) {
         LocalDate today = LocalDate.now(clock);
         InputRules.requireMonth(month, today);
         amount = InputRules.requireRupees(amount, "the amount paid");
+        String ref = InputRules.limited(reference, 60, "the reference");
         rejectRepeat("pay|" + workerId + "|" + amount + "|" + method + "|" + month);
         LocalDate paidOn = YearMonth.from(today).equals(month) ? today : month.atEndOfMonth();
         long beforePaise = paidInMonth(workerId, month);
-        paymentService.record(new RecordPayment(workerId, paidOn, amount, method, null, null, AllocationMode.AUTO, List.of()));
+        paymentService.record(new RecordPayment(workerId, paidOn, amount, method, ref.isEmpty() ? null : ref, null, AllocationMode.AUTO, List.of()));
         Worker worker = workerService.getWorker(workerId);
         String message = "Payment of " + Money.format(Money.parsePositiveRupees(amount)) + " recorded for " + worker.getName() + ".";
         try {

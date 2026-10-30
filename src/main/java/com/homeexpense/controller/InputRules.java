@@ -118,4 +118,13 @@ public final class InputRules {
         }
         return phone;
     }
+
+    /** Optional free text, trimmed and kept short. */
+    public static String limited(String text, int max, String what) {
+        String clean = text == null ? "" : text.strip();
+        if (clean.length() > max) {
+            throw new BusinessRuleException("Please keep " + what + " to " + max + " characters or fewer.");
+        }
+        return clean;
+    }
 }
