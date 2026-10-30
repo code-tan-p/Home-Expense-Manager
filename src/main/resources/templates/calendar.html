@@ -74,7 +74,8 @@
             <p th:if="${cal.hourly}" class="total-line">
                 Hours worked: <strong th:text="${cal.summary.hours} + ' hours'">0 hours</strong>
             </p>
-            <p><a class="btn" th:href="@{/pay(month=${month})}">See the pay for this month</a></p>
+            <p><a class="btn" th:href="@{/pay(month=${month})}">See the pay for this month</a>
+                <a class="btn" th:href="@{/attendance/{id}(id=${worker.id}, month=${month})}">Records and corrections</a></p>
         </section>
     </div>
 </main>

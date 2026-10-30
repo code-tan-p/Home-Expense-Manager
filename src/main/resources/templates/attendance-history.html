@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Attendance records')}"></head>
+<body>
+<header th:replace="~{fragments :: header('calendar')}"></header>
+<main>
+    <h1>Records for <span th:text="${worker.name}">Name</span></h1>
+    <p class="sub">Every record for the month, including corrected and undone ones. Nothing is ever erased.</p>
+    <p>
+        <a th:href="@{/attendance/{id}(id=${worker.id}, month=${previous})}">&larr; Earlier</a> ·
+        <strong th:text="${#temporals.format(month, 'MMMM yyyy')}">October 2026</strong> ·
+        <a th:href="@{/attendance/{id}(id=${worker.id}, month=${next})}">Later &rarr;</a> ·
+        <a th:href="@{/calendar(workerId=${worker.id}, month=${month})}">Calendar</a>
+    </p>
+
+    <div th:replace="~{fragments :: messages}"></div>
+
+    <section class="card empty" th:if="${records.isEmpty()}"><p>No records this month.</p></section>
+
+    <section class="card" th:each="r : ${records}">
+        <div class="row">
+            <div>
+                <div class="name">
+                    <span th:text="${#temporals.format(r.workDate, 'EEE d MMM')}">Mon 1 Oct</span>
+                    <span class="badge done" th:if="${r.current and r.outcome.name() == 'COMPLETED'}">Came</span>
+                    <span class="badge wait" th:if="${r.current and r.outcome.name() == 'PARTIAL'}">Part day</span>
+                    <span class="badge off" th:if="${r.current and r.outcome.name() == 'NOT_DONE'}">Not worked</span>
+                    <span class="badge off" th:if="${!r.current}">Replaced or undone</span>
+                    <span class="badge wait" th:if="${r.replaces != null}">Corrected</span>
+                </div>
+                <div class="meta">
+                    <span th:if="${r.actualQuantityMilli != null}" th:text="${T(java.math.BigDecimal).valueOf(r.actualQuantityMilli, 3).stripTrailingZeros().toPlainString()} + ' L'">1 L</span>
+                    <span th:if="${r.actualMinutes != null}" th:text="${T(java.math.BigDecimal).valueOf(r.actualMinutes).divide(T(java.math.BigDecimal).valueOf(60), 2, T(java.math.RoundingMode).HALF_UP).stripTrailingZeros().toPlainString()} + ' h'">1 h</span>
+                    <span th:if="${r.absenceReason != null}" th:text="${r.absenceReason.name() == 'APPROVED_LEAVE' ? 'On leave' : (r.absenceReason.name() == 'HOUSEHOLD_HOLIDAY' ? 'Holiday' : 'Did not come')}">Leave</span>
+                    <span th:if="${r.note != null}"> · <span th:text="${r.note}">note</span></span>
+                </div>
+                <div class="meta" th:if="${!r.current and r.voidReason != null}">Why: <span th:text="${r.voidReason}">reason</span></div>
+            </div>
+        </div>
+        <details class="activity" th:if="${r.current}">
+            <summary>Correct this record</summary>
+            <form class="actions" th:action="@{/attendance/{id}/correct(id=${worker.id})}" method="post" style="margin-top:.75rem">
+                <input type="hidden" name="recordId" th:value="${r.id}">
+                <input type="hidden" name="month" th:value="${month}">
+                <select name="outcome" aria-label="What happened" style="width:auto">
+                    <option value="COMPLETED" th:selected="${r.outcome.name() == 'COMPLETED'}">Came</option>
+                    <option value="PARTIAL" th:selected="${r.outcome.name() == 'PARTIAL'}">Part day</option>
+                    <option value="NOT_DONE" th:selected="${r.outcome.name() == 'NOT_DONE'}">Did not work</option>
+                </select>
+                <select name="absence" aria-label="If not worked, why" style="width:auto">
+                    <option value="UNAUTHORIZED_ABSENCE">Did not come</option>
+                    <option value="APPROVED_LEAVE" th:selected="${r.absenceReason != null and r.absenceReason.name() == 'APPROVED_LEAVE'}">Leave</option>
+                    <option value="HOUSEHOLD_HOLIDAY" th:selected="${r.absenceReason != null and r.absenceReason.name() == 'HOUSEHOLD_HOLIDAY'}">Holiday</option>
+                </select>
+                <input class="small" type="text" name="litres" inputmode="decimal" placeholder="Litres" aria-label="Litres">
+                <input class="small" type="text" name="hours" inputmode="decimal" placeholder="Hours" aria-label="Hours">
+                <input class="small" type="text" name="note" maxlength="200" placeholder="Note" aria-label="Note"
+                       th:value="${r.note}">
+                <input class="small" type="text" name="reason" maxlength="200" required placeholder="Why correct it?" aria-label="Reason for the correction">
+                <button class="btn" type="submit">Save correction</button>
+            </form>
+        </details>
+    </section>
+</main>
+</body>
+</html>
