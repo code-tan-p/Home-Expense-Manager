@@ -22,14 +22,14 @@ Status words: **DONE** (screen and test exist), **BACKEND** (service exists, no 
 | Item | Status | Where / note |
 | --- | --- | --- |
 | Add worker (name, job, contact, joining date) | DONE | `StaffController`, `staff.html` |
-| Edit name, phone, job after creation | MISSING | needs `WorkerService.update` and profile page |
+| Edit name, phone, notes after creation | DONE | `WorkerProfileController`, `worker-profile.html`, `WorkerProfileTest` (job stays fixed on purpose) |
 | Deactivate with last day, rejoin | DONE | `/staff/{id}/stop`, `/restart` |
 | Six pay models | DONE | monthly, per day, per hour, per litre, per task (fixed + variable: LATER) |
 | Effective-dated rate changes | DONE | `/staff/{id}/pay` |
 | Weekly schedule per worker, weekly offs | DONE | `/staff/{id}/days` |
-| Employment history, rate history view | BACKEND | `WorkerService.employmentHistory`, `PayService.rateHistory` |
+| Employment history, rate history view | DONE | worker profile page |
 | Worker-specific holidays | MISSING | needs migration |
-| Notes, documents, emergency contact | BACKEND (notes) / LATER | `Worker.notes` has no field |
+| Notes | DONE | worker profile; documents and emergency contact LATER |
 
 ### 2. Daily attendance (P0)
 | Item | Status | Where / note |
@@ -37,9 +37,9 @@ Status words: **DONE** (screen and test exist), **BACKEND** (service exists, no 
 | Daily dashboard, mark done / absent / leave / holiday | DONE | `HomeController`, `index.html` |
 | Partial attendance, hours, litres | DONE | Today screen inputs |
 | Undo | DONE | `/work/undo` |
-| Extra / unscheduled work form | BACKEND | `DailyWorkService.recordUnscheduled` |
-| Correction history, edit by audited correction | BACKEND | `DailyWorkService.history/correct` |
-| Notes per record | MISSING | |
+| Extra / unscheduled work form | BACKEND | `DailyWorkService.recordUnscheduled` (still no form) |
+| Correction history, edit by audited correction | DONE | `/attendance/{id}`, `AttendanceHistoryTest` |
+| Notes per record | DONE | note box on the correction form |
 | Missing attendance list | PARTIAL | counts only; dedicated list MISSING |
 | Calendar view per worker | DONE | `/calendar` |
 | Attendance percentage | MISSING | |
@@ -51,7 +51,7 @@ Status words: **DONE** (screen and test exist), **BACKEND** (service exists, no 
 | Integer paise, effective-dated rates | DONE | `Money` |
 | Monthly preview, missing-attendance warnings | DONE | `/pay` |
 | Finalize and lock | DONE | `/pay/close`, `FinalizedEarningsGuard` |
-| Line-by-line breakdown screen | MISSING | `EarningsService.view` |
+| Line-by-line breakdown screen | DONE | "How this was worked out" on Monthly Pay and the salary slip |
 | Reopen with audit, review lines, confirm unrecorded | BACKEND | `EarningsService.reopenEarnings/reviewLine/confirmUnrecorded` |
 | Bonuses, deductions, overtime, custom components | MISSING | `FinancialAdjustment` exists; UI LATER |
 
@@ -59,25 +59,25 @@ Status words: **DONE** (screen and test exist), **BACKEND** (service exists, no 
 | Item | Status | Where / note |
 | --- | --- | --- |
 | Partial and full payments, date, method | DONE | `/pay/payment` |
-| Reference / note on payment | BACKEND | `Payment.reference/note` |
+| Reference on payment | DONE | Monthly Pay form and payments page |
 | Advance given, balance shown | DONE | `/pay/advance` |
 | Advance recovery history | BACKEND | `AdvanceRecovery` |
-| Payment reversal / correction | BACKEND | `PaymentService.previewReplacement/confirmReplacement` |
+| Payment reversal / correction | DONE | `/pay/history/{id}`, `PaymentHistoryTest` |
 | Settlement history, reopen | BACKEND | `SettlementService` |
 | Carry-forward | BACKEND | `SettlementService.correctCarry` |
-| Printable receipt / salary slip | MISSING | |
+| Printable salary slip | DONE | `/reports/slip/{id}` (print or save as PDF); receipts LATER |
 
 ### 5. Household expenses (P1)
 | Item | Status |
 | --- | --- |
-| Daily expenses, categories, custom categories, method, date, notes | MISSING |
-| Recurring, monthly summary, filter, audited edits | MISSING |
+| Daily expenses, categories, custom categories, method, date, notes | DONE |
+| Recurring, monthly summary, filter, audited edits | DONE (`ExpenseTest`, migration V10; database refuses edit or delete) |
 | Budgets, trends, split, bills, receipt images | LATER |
 
 ### 6. Dashboard (P1)
 | Item | Status |
 | --- | --- |
-| Staff count, today's attendance, pending, month earned / paid / outstanding / advances, recent payments, alerts | MISSING |
+| Staff count, pending, month earned / paid / outstanding / advances, recent payments, alerts | DONE (`/overview`, `OverviewTest`) |
 | Charts and trends | LATER |
 
 ### 7. Backup, recovery, integrity (P0)
@@ -111,8 +111,8 @@ Status words: **DONE** (screen and test exist), **BACKEND** (service exists, no 
 ### 10. Reports and exports (P1)
 | Item | Status |
 | --- | --- |
-| Monthly salary, worker earnings, payment history, outstanding, advances, attendance reports with date range | MISSING |
-| CSV export, print-friendly pages | MISSING |
+| Monthly salary and payments reports, month and date range | DONE (`/reports`, `ReportsTest`); attendance percentage and advance report LATER |
+| CSV export (salary, payments, expenses), print-friendly pages | DONE |
 | PDF | LATER (browser "Save as PDF" from the print page) |
 
 ## B. Acceptance checklist (29 items)
@@ -186,3 +186,5 @@ bottom tab bar, litre chips, bigger Still-to-pay (P1b); Hindi (LATER).
 | Date | Item | Result |
 | --- | --- | --- |
 | 2026-10-30 | Doc created from owner's checklist, gap check and both committees | statuses above |
+| 2026-10-30 | P0: earnings breakdown, payments page with corrections, attendance corrections, worker profile, overview, older-backup restore test | 396 tests green |
+| 2026-10-30 | P1: reports and CSV, salary slip, expense module (V10) | 396 tests green |
