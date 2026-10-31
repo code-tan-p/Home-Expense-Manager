@@ -7,10 +7,10 @@
     <h1>Records for <span th:text="${worker.name}">Name</span></h1>
     <p class="sub">Every record for the month, including corrected and undone ones. Nothing is ever erased.</p>
     <p>
-        <a th:href="@{/attendance/{id}(id=${worker.id}, month=${previous})}">&larr; Earlier</a> ·
+        <a class="btn tiny" th:href="@{/attendance/{id}(id=${worker.id}, month=${previous})}">&larr; Earlier</a>
         <strong th:text="${#temporals.format(month, 'MMMM yyyy')}">October 2026</strong> ·
-        <a th:href="@{/attendance/{id}(id=${worker.id}, month=${next})}">Later &rarr;</a> ·
-        <a th:href="@{/calendar(workerId=${worker.id}, month=${month})}">Calendar</a>
+        <a class="btn tiny" th:href="@{/attendance/{id}(id=${worker.id}, month=${next})}">Later &rarr;</a>
+        <a class="btn tiny" th:href="@{/calendar(workerId=${worker.id}, month=${month})}">Calendar</a>
     </p>
 
     <div th:replace="~{fragments :: messages}"></div>
@@ -25,7 +25,7 @@
         <div th:if="${!missing.isEmpty()}">
             <strong>Days not recorded yet</strong>
             <p class="meta">
-                <span th:each="d : ${missing}"><a th:href="@{/(date=${d})}" th:text="${#temporals.format(d, 'EEE d MMM')}">Mon 1 Oct</a> · </span>
+                <span th:each="d : ${missing}"><a class="btn tiny" th:href="@{/(date=${d})}" th:text="${#temporals.format(d, 'EEE d MMM')}">Mon 1 Oct</a> · </span>
             </p>
         </div>
         <p class="meta" th:if="${missing.isEmpty()}">Every day so far is recorded.</p>

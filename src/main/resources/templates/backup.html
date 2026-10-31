@@ -23,7 +23,7 @@
         <p class="meta" th:if="${automatic.isEmpty()}">No automatic backup yet. The first one is made tonight.</p>
         <ul th:if="${!automatic.isEmpty()}">
             <li th:each="b : ${automatic}">
-                <a th:href="@{/backup/automatic/{n}(n=${b.name})}" th:text="${b.name}">home-expense-2026-10-30.db</a>
+                <a class="btn tiny" th:href="@{/backup/automatic/{n}(n=${b.name})}" th:text="${b.name}">home-expense-2026-10-30.db</a>
                 <span class="meta" th:text="'· ' + ${#numbers.formatDecimal(b.sizeBytes / 1024.0, 1, 0)} + ' KB'"></span>
             </li>
         </ul>

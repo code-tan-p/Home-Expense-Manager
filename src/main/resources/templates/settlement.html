@@ -6,12 +6,12 @@
 <main>
     <h1>Month-end for <span th:text="${worker.name}">Name</span></h1>
     <p class="sub">How the amount to pay was put together, what has been paid, and every earlier version.</p>
-    <p class="noprint">
-        <a th:href="@{/pay(month=${month})}">&larr; Monthly Pay</a> ·
-        <a th:href="@{/settlement/{id}(id=${worker.id}, month=${previous})}">Earlier month</a> ·
+    <p class="noprint actions">
+        <a class="btn tiny" th:href="@{/pay(month=${month})}">&larr; Monthly Pay</a>
+        <a class="btn tiny" th:href="@{/settlement/{id}(id=${worker.id}, month=${previous})}">Earlier month</a>
         <strong th:text="${#temporals.format(month, 'MMMM yyyy')}">October 2026</strong> ·
-        <a th:href="@{/settlement/{id}(id=${worker.id}, month=${next})}">Later month</a> ·
-        <a th:href="@{/pay/history/{id}(id=${worker.id})}">Payments</a>
+        <a class="btn tiny" th:href="@{/settlement/{id}(id=${worker.id}, month=${next})}">Later month</a>
+        <a class="btn tiny" th:href="@{/pay/history/{id}(id=${worker.id})}">Payments</a>
     </p>
 
     <div th:replace="~{fragments :: messages}"></div>

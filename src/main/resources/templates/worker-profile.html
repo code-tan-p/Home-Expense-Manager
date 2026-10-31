@@ -6,17 +6,17 @@
 <main>
     <h1 th:text="${worker.name}">Name</h1>
     <p class="sub"><span th:text="${worker.workerType.name}">Maid</span></p>
-    <p><a th:href="@{/staff}">&larr; All staff</a> ·
-        <a th:href="@{/calendar(workerId=${worker.id})}">Calendar</a> ·
-        <a th:href="@{/attendance/{id}(id=${worker.id})}">Attendance records</a> ·
-        <a th:href="@{/pay/history/{id}(id=${worker.id})}">Payments</a></p>
+    <p class="actions"><a class="btn tiny" th:href="@{/staff}">&larr; All staff</a>
+        <a class="btn tiny" th:href="@{/calendar(workerId=${worker.id})}">Calendar</a>
+        <a class="btn tiny" th:href="@{/attendance/{id}(id=${worker.id})}">Attendance records</a>
+        <a class="btn tiny" th:href="@{/pay/history/{id}(id=${worker.id})}">Payments</a></p>
 
     <div th:replace="~{fragments :: messages}"></div>
 
     <section class="card">
         <h2>This month's calendar</h2>
         <th:block th:replace="~{calendar-fragment :: grid(${cal}, ${worker}, ${month})}"></th:block>
-        <p class="meta"><a th:href="@{/calendar(workerId=${worker.id}, month=${month})}">Open the full calendar</a></p>
+        <p class="actions"><a class="btn tiny" th:href="@{/calendar(workerId=${worker.id}, month=${month})}">Open the full calendar</a></p>
     </section>
 
     <section class="card">

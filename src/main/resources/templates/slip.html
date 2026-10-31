@@ -5,7 +5,7 @@
 <header th:replace="~{fragments :: header('reports')}"></header>
 <main>
     <p class="noprint actions">
-        <a th:href="@{/reports(month=${month})}">&larr; Reports</a>
+        <a class="btn tiny" th:href="@{/reports(month=${month})}">&larr; Reports</a>
         <button class="btn primary" type="button" onclick="window.print()">Print or save as PDF</button>
     </p>
     <section class="card slip">

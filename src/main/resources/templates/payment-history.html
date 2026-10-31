@@ -6,7 +6,7 @@
 <main>
     <h1>Payments to <span th:text="${worker.name}">Name</span></h1>
     <p class="sub">Every payment, newest first. A correction keeps the old payment in the list, marked as replaced.</p>
-    <p><a th:href="@{/pay}">&larr; Back to Monthly Pay</a></p>
+    <p class="actions"><a class="btn tiny" th:href="@{/pay}">&larr; Back to Monthly Pay</a></p>
 
     <div th:replace="~{fragments :: messages}"></div>
 
