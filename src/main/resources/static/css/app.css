@@ -221,3 +221,26 @@ main p a:not(.btn):hover, main li a:not(.btn):hover { color: var(--primary); }
     .btn.caution { color: #f2c1ad; }
     a { color: #b9d3a3; }
 }
+
+/* Header: name and Sign out stay visible; the menu scrolls on its own row. */
+.userbar { display: flex; gap: .5rem; align-items: center; margin-left: auto; }
+.topbar .btn.small-btn { min-height: 2.4rem; padding: .3rem .8rem; background: transparent; color: var(--background); border-color: rgba(255,255,255,.35); }
+.topbar .btn.small-btn.active { background: var(--tertiary); color: var(--primary); }
+.topbar nav { flex: 1 1 100%; }
+
+/* Password helpers */
+.pw-wrap { position: relative; display: block; }
+.pw-wrap input { padding-right: 4.5rem; }
+.pw-eye { position: absolute; right: .35rem; top: 50%; transform: translateY(-50%); border: 0; background: transparent; color: var(--secondary);
+    font: inherit; font-weight: 600; min-height: 2.4rem; padding: 0 .6rem; cursor: pointer; }
+.pw-strength { margin: .4rem 0 .25rem; }
+.pw-bar { height: .45rem; background: var(--line); border-radius: 1rem; overflow: hidden; }
+.pw-fill { height: 100%; width: 0; background: var(--accent); transition: width .15s; }
+.pw-fill.s3, .pw-fill.s4 { background: #c9a227; }
+.pw-fill.s5 { background: var(--secondary); }
+.pw-rules { list-style: none; margin: .35rem 0 0; padding: 0; font-size: .85rem; color: var(--muted); }
+.pw-rules li::before { content: "\25CB  "; }
+.pw-rules li.ok { color: var(--secondary); }
+.pw-rules li.ok::before { content: "\2713  "; }
+.pw-match.ok { color: var(--secondary); font-weight: 600; }
+.pw-match.bad { color: var(--accent); font-weight: 600; }

@@ -68,7 +68,7 @@ class SignUpTest {
     private MailService mail;
 
     /** A person who is signed in, with the recovery code they were shown. */
-    private record Person(String email, String password, MockHttpSession session, String recoveryCode) {
+    private record Person(String email, String password, MockHttpSession session) {
     }
 
     /** Each call comes from a new address, so the sign-up limit per address does not get in the way. */
@@ -84,15 +84,14 @@ class SignUpTest {
         MockHttpSession session = new MockHttpSession();
         String token = token(mockMvc.perform(get("/signup").session(session)).andReturn());
         MvcResult done = mockMvc.perform(post("/signup").session(session).with(from("10.1.0." + NEXT.get()))
-                        .param("name", name).param("email", email).param("password", "secret-pw-1").param("confirm", "secret-pw-1")
+                        .param("name", name).param("email", email).param("password", "Secret-Pw-1!").param("confirm", "Secret-Pw-1!")
                         .param("_csrf", token).header("Referer", "http://localhost/signup")).andReturn();
         assertThat(done.getFlashMap().get("error")).as("sign-up error").isNull();
-        assertThat(done.getResponse().getRedirectedUrl()).isEqualTo("/welcome");
+        assertThat(done.getResponse().getRedirectedUrl()).isEqualTo("/");
         MockHttpSession active = (MockHttpSession) done.getRequest().getSession(false);
-        String code = String.valueOf(done.getFlashMap().get("recoveryCode"));
-        mockMvc.perform(get("/welcome").session(active).flashAttr("recoveryCode", code))
-                .andExpect(status().isOk()).andExpect(content().string(containsString(code)));
-        return new Person(email, "secret-pw-1", active, code);
+        assertThat(done.getFlashMap().get("ok").toString()).contains("Welcome, " + name);
+        mockMvc.perform(get("/").session(active)).andExpect(status().isOk());
+        return new Person(email, "Secret-Pw-1!", active);
     }
 
     private String token(MvcResult page) throws Exception {
@@ -122,7 +121,7 @@ class SignUpTest {
         mockMvc.perform(get("/actuator/health")).andExpect(status().isOk());
         mockMvc.perform(post("/staff").param("name", "Intruder").param("typeId", "1")).andExpect(status().isForbidden());
         mockMvc.perform(post("/signup").param("name", "X").param("email", "x@example.com")
-                .param("password", "secret-pw-1").param("confirm", "secret-pw-1")).andExpect(status().isForbidden());
+                .param("password", "Secret-Pw-1!").param("confirm", "Secret-Pw-1!")).andExpect(status().isForbidden());
     }
 
     @Test
@@ -130,13 +129,19 @@ class SignUpTest {
         MockHttpSession s = new MockHttpSession();
         String token = token(mockMvc.perform(get("/signup").session(s)).andReturn());
         mockMvc.perform(post("/signup").session(s).param("_csrf", token).param("name", "Ann").param("email", "not-an-email")
-                .param("password", "secret-pw-1").param("confirm", "secret-pw-1"))
+                .param("password", "Secret-Pw-1!").param("confirm", "Secret-Pw-1!"))
                 .andExpect(flash().attribute("error", containsString("valid email")));
         mockMvc.perform(post("/signup").session(s).param("_csrf", token).param("name", "Ann").param("email", "ann@example.com")
                 .param("password", "short").param("confirm", "short"))
-                .andExpect(flash().attribute("error", containsString("at least 8")));
+                .andExpect(flash().attribute("error", containsString("at least 9")));
         mockMvc.perform(post("/signup").session(s).param("_csrf", token).param("name", "Ann").param("email", "ann@example.com")
-                .param("password", "secret-pw-1").param("confirm", "secret-pw-2"))
+                .param("password", "alllowercase1").param("confirm", "alllowercase1"))
+                .andExpect(flash().attribute("error", containsString("uppercase letter")));
+        mockMvc.perform(post("/signup").session(s).param("_csrf", token).param("name", "Ann").param("email", "ann@example.com")
+                .param("password", "NoSpecial123").param("confirm", "NoSpecial123"))
+                .andExpect(flash().attribute("error", containsString("special character")));
+        mockMvc.perform(post("/signup").session(s).param("_csrf", token).param("name", "Ann").param("email", "ann@example.com")
+                .param("password", "Secret-Pw-1!").param("confirm", "Secret-Pw-2!"))
                 .andExpect(flash().attribute("error", containsString("not the same")));
         mockMvc.perform(post("/signup").session(s).param("_csrf", token).param("name", "Ann").param("email", "ann@example.com")
                 .param("password", "x".repeat(80)).param("confirm", "x".repeat(80)))
@@ -146,7 +151,7 @@ class SignUpTest {
         MockHttpSession again = new MockHttpSession();
         String t2 = token(mockMvc.perform(get("/signup").session(again)).andReturn());
         mockMvc.perform(post("/signup").session(again).param("_csrf", t2).param("name", "Other").param("email", first.email().toUpperCase())
-                        .param("password", "secret-pw-1").param("confirm", "secret-pw-1"))
+                        .param("password", "Secret-Pw-1!").param("confirm", "Secret-Pw-1!"))
                 .andExpect(flash().attribute("error", containsString("already has an account")));
     }
 
@@ -190,37 +195,17 @@ class SignUpTest {
         mockMvc.perform(get("/staff").session(active)).andExpect(status().isOk())
                 .andExpect(content().string(containsString("Sign out"))).andExpect(content().string(containsString("Cara")));
 
-        Person me = new Person(cara.email(), cara.password(), active, cara.recoveryCode());
+        Person me = new Person(cara.email(), cara.password(), active);
         String csrf = token(me);
-        mockMvc.perform(post("/account/password/change").session(active).param("_csrf", csrf).param("current", "wrong")
-                .param("password", "newer-pw-22").param("confirm", "newer-pw-22"))
-                .andExpect(flash().attribute("error", containsString("current password is not right")));
+        mockMvc.perform(get("/account").session(active)).andExpect(content().string(not(containsString("Change password"))))
+                .andExpect(content().string(containsString("Forgot password")));
         mockMvc.perform(post("/account/password/change").session(active).param("_csrf", csrf).param("current", cara.password())
-                .param("password", "newer-pw-22").param("confirm", "newer-pw-22"))
-                .andExpect(flash().attribute("ok", containsString("Password changed")));
+                .param("password", "Newer-Pw-22!").param("confirm", "Newer-Pw-22!")).andExpect(status().is4xxClientError());
+        // exactly one Sign out on a page: the one in the header
+        String page = mockMvc.perform(get("/account").session(active)).andReturn().getResponse().getContentAsString();
+        assertThat(page.split("Sign out", -1).length - 1).isEqualTo(1);
         mockMvc.perform(post("/logout").session(active).param("_csrf", csrf)).andExpect(redirectedUrl("/login?bye"));
         mockMvc.perform(get("/staff").session(active)).andExpect(status().is3xxRedirection());
-    }
-
-    @Test
-    void forgottenPasswordIsResetWithTheRecoveryCodeWhichChangesEachTime() throws Exception {
-        Person dev = signUp("Dev");
-        MockHttpSession s = new MockHttpSession();
-        String t = token(mockMvc.perform(get("/forgot").session(s)).andReturn());
-        mockMvc.perform(post("/forgot").session(s).with(from("10.2.0.1")).param("_csrf", t).param("email", dev.email())
-                        .param("code", "AAAA-BBBB-CCCC-DDDD").param("password", "brand-new-pw1").param("confirm", "brand-new-pw1"))
-                .andExpect(flash().attribute("error", containsString("do not match")));
-        MvcResult done = mockMvc.perform(post("/forgot").session(s).with(from("10.2.0.2")).param("_csrf", t).param("email", dev.email())
-                        .param("code", dev.recoveryCode().toLowerCase()).param("password", "brand-new-pw1").param("confirm", "brand-new-pw1"))
-                .andExpect(redirectedUrl("/welcome")).andReturn();
-        String newCode = String.valueOf(done.getFlashMap().get("recoveryCode"));
-        assertThat(newCode).isNotEqualTo(dev.recoveryCode());
-        // the used code no longer works
-        MockHttpSession s2 = new MockHttpSession();
-        String t2 = token(mockMvc.perform(get("/forgot").session(s2)).andReturn());
-        mockMvc.perform(post("/forgot").session(s2).with(from("10.2.0.3")).param("_csrf", t2).param("email", dev.email())
-                        .param("code", dev.recoveryCode()).param("password", "another-pw-33").param("confirm", "another-pw-33"))
-                .andExpect(flash().attribute("error", containsString("do not match")));
     }
 
     @Test
@@ -270,10 +255,13 @@ class SignUpTest {
         assertThat(databases.exists(household)).isTrue();
         String csrf = token(hal);
         mockMvc.perform(post("/account/delete").session(hal.session()).param("_csrf", csrf).param("password", hal.password()))
-                .andExpect(flash().attribute("error", containsString("Tick the box")));
-        mockMvc.perform(post("/account/delete").session(hal.session()).param("_csrf", csrf).param("password", "wrong-one").param("sure", "yes"))
+                .andExpect(flash().attribute("error", containsString("Type the word DELETE")));
+        mockMvc.perform(post("/account/delete").session(hal.session()).param("_csrf", csrf).param("password", hal.password()).param("typed", "delete"))
+                .andExpect(flash().attribute("error", containsString("Type the word DELETE")));
+        mockMvc.perform(post("/account/delete").session(hal.session()).param("_csrf", csrf).param("password", "Wrong-One-1!").param("typed", "DELETE"))
                 .andExpect(flash().attribute("error", containsString("not right")));
-        mockMvc.perform(post("/account/delete").session(hal.session()).param("_csrf", csrf).param("password", hal.password()).param("sure", "yes"))
+        assertThat(databases.exists(household)).isTrue();
+        mockMvc.perform(post("/account/delete").session(hal.session()).param("_csrf", csrf).param("password", hal.password()).param("typed", "DELETE"))
                 .andExpect(redirectedUrl("/login?deleted"));
         assertThat(databases.exists(household)).isFalse();
         MockHttpSession s = new MockHttpSession();
@@ -283,44 +271,58 @@ class SignUpTest {
     }
 
     @Test
-    void emailedCodeResetsThePasswordOnceAndNeverRevealsWhoHasAnAccount() throws Exception {
+    void emailedLinkResetsThePasswordOnceAndNeverRevealsWhoHasAnAccount() throws Exception {
         org.mockito.Mockito.when(mail.enabled()).thenReturn(true);
         Person ida = signUp("Ida");
         MockHttpSession s = new MockHttpSession();
         String t = token(mockMvc.perform(get("/forgot").session(s)).andReturn());
-        mockMvc.perform(get("/forgot").session(s)).andExpect(content().string(containsString("Email me a code")));
+        mockMvc.perform(get("/forgot").session(s)).andExpect(content().string(containsString("Send me the link")));
 
         // an unknown email gets the same answer and nothing is sent
-        mockMvc.perform(post("/forgot/email").session(s).with(from("10.5.0.1")).param("_csrf", t).param("email", "nobody@example.com"))
+        mockMvc.perform(post("/forgot").session(s).with(from("10.5.0.1")).param("_csrf", t).param("email", "nobody@example.com"))
                 .andExpect(flash().attribute("ok", containsString("If that email has an account")));
         org.mockito.Mockito.verify(mail, org.mockito.Mockito.never()).send(org.mockito.ArgumentMatchers.anyString(),
                 org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString());
 
-        mockMvc.perform(post("/forgot/email").session(s).with(from("10.5.0.2")).param("_csrf", t).param("email", ida.email()))
+        mockMvc.perform(post("/forgot").session(s).with(from("10.5.0.2")).param("_csrf", t).param("email", ida.email()))
                 .andExpect(flash().attribute("ok", containsString("If that email has an account")));
         ArgumentCaptor<String> text = ArgumentCaptor.forClass(String.class);
         org.mockito.Mockito.verify(mail).send(org.mockito.ArgumentMatchers.eq(ida.email()), org.mockito.ArgumentMatchers.anyString(), text.capture());
-        Matcher m = Pattern.compile("code is (\\d{6})").matcher(text.getValue());
+        Matcher m = Pattern.compile("/reset\\?token=([A-Za-z0-9_-]+)").matcher(text.getValue());
         assertThat(m.find()).isTrue();
-        String code = m.group(1);
+        String token = m.group(1);
 
-        mockMvc.perform(post("/forgot/code").session(s).with(from("10.5.0.3")).param("_csrf", t).param("email", ida.email())
-                        .param("code", code.equals("000000") ? "111111" : "000000").param("password", "fresh-pass-77").param("confirm", "fresh-pass-77"))
-                .andExpect(flash().attribute("error", containsString("wrong or has expired")));
-        MvcResult done = mockMvc.perform(post("/forgot/code").session(s).with(from("10.5.0.4")).param("_csrf", t).param("email", ida.email())
-                        .param("code", code).param("password", "fresh-pass-77").param("confirm", "fresh-pass-77"))
+        // a wrong token shows the "not valid" page; the right one shows the form with the strength helpers
+        mockMvc.perform(get("/reset").param("token", "not-a-real-token")).andExpect(content().string(containsString("not valid any more")));
+        String form = mockMvc.perform(get("/reset").param("token", token).session(s)).andExpect(status().isOk())
+                .andExpect(content().string(containsString("Save new password"))).andExpect(content().string(containsString("data-new")))
+                .andReturn().getResponse().getContentAsString();
+        assertThat(form).contains("Suggest a strong password");
+
+        // a weak password is refused and the link still works
+        mockMvc.perform(post("/reset").session(s).with(from("10.5.0.3")).param("_csrf", t).param("token", token)
+                        .param("password", "weakweak1").param("confirm", "weakweak1"))
+                .andExpect(flash().attribute("error", containsString("stronger")));
+        MvcResult done = mockMvc.perform(post("/reset").session(s).with(from("10.5.0.4")).param("_csrf", t).param("token", token)
+                        .param("password", "Fresh-Pass-77!").param("confirm", "Fresh-Pass-77!"))
                 .andExpect(redirectedUrl("/")).andReturn();
         MockHttpSession active = (MockHttpSession) done.getRequest().getSession(false);
         mockMvc.perform(get("/staff").session(active)).andExpect(status().isOk());
 
-        // the code works only once
-        mockMvc.perform(post("/forgot/code").session(s).with(from("10.5.0.5")).param("_csrf", t).param("email", ida.email())
-                        .param("code", code).param("password", "other-pass-88").param("confirm", "other-pass-88"))
-                .andExpect(flash().attribute("error", containsString("wrong or has expired")));
-        // the new password signs in, the old does not
+        // the link works only once
+        mockMvc.perform(post("/reset").session(s).with(from("10.5.0.5")).param("_csrf", t).param("token", token)
+                        .param("password", "Other-Pass-88!").param("confirm", "Other-Pass-88!"))
+                .andExpect(flash().attribute("error", containsString("not valid any more")));
+        // the new password signs in
         MockHttpSession again = new MockHttpSession();
         String t2 = token(mockMvc.perform(get("/login").session(again)).andReturn());
-        mockMvc.perform(post("/login").session(again).with(from("10.5.0.6")).param("username", ida.email()).param("password", "fresh-pass-77").param("_csrf", t2))
+        mockMvc.perform(post("/login").session(again).with(from("10.5.0.6")).param("username", ida.email()).param("password", "Fresh-Pass-77!").param("_csrf", t2))
                 .andExpect(status().is3xxRedirection());
+    }
+
+    @Test
+    void withoutMailSettingsForgotPasswordSaysSo() throws Exception {
+        org.mockito.Mockito.when(mail.enabled()).thenReturn(false);
+        mockMvc.perform(get("/forgot")).andExpect(content().string(containsString("not set up on this server yet")));
     }
 }

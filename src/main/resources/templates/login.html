@@ -19,9 +19,11 @@
                    style="margin-bottom:1rem">
             <button class="btn primary" type="submit">Sign in</button>
         </form>
-        <p class="meta" style="margin-top:1rem">New here? <a th:href="@{/signup}">Create your free account</a>
-            &middot; <a th:href="@{/forgot}">Forgot password</a></p>
+        <p class="meta" style="margin-top:1rem">
+            <a class="btn" th:href="@{/signup}">Create your free account</a>
+            <a class="btn" th:href="@{/forgot}">Forgot password</a></p>
     </section>
 </main>
+<script th:src="@{/js/password.js}"></script>
 </body>
 </html>

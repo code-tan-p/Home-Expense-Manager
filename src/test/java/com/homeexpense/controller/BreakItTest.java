@@ -12,6 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.nio.file.Files;
 import java.time.LocalDate;
+import java.util.List;
 
 import com.homeexpense.SqliteIntegrationTest;
 import com.homeexpense.dto.DayView;
@@ -192,14 +193,19 @@ class BreakItTest extends SqliteIntegrationTest {
     }
 
     @Test
-    void aWorkerNeedsAtLeastOneWeekday() throws Exception {
+    void onlyAMonthlyWorkerNeedsWeekdaysOthersAreListedEveryDay() throws Exception {
+        // A monthly salary is tied to weekdays, so at least one is required.
         mockMvc.perform(post("/staff").param("name", "No Days Dev").param("typeId", "1").param("start", "2026-06-01")
-                        .param("pay", "HOURLY").param("rate", "100"))
+                        .param("pay", "MONTHLY_SALARY").param("rate", "100"))
                 .andExpect(flash().attributeExists("error"));
         assertThat(workerService.listAllWorkers()).noneMatch(w -> w.getName().equals("No Days Dev"));
-        Long id = addWorker("Days Dina", "MONTHLY_SALARY", "1000");
-        mockMvc.perform(post("/staff/" + id + "/days").param("from", "2026-07-01"))
-                .andExpect(flash().attributeExists("error"));
+        // Everyone else is on the Today screen every day without ticking weekdays.
+        mockMvc.perform(post("/staff").param("name", "Hourly Hari").param("typeId", "4").param("start", "2026-06-01")
+                .param("pay", "HOURLY").param("rate", "100"));
+        Long hari = workerService.listAllWorkers().stream().filter(w -> w.getName().equals("Hourly Hari")).findFirst().orElseThrow().getId();
+        for (LocalDate day : List.of(LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 6), LocalDate.of(2026, 6, 7))) {
+            assertThat(dailyWorkService.dayView(day).workers()).anyMatch(w -> w.worker().getId().equals(hari) && !w.expected().isEmpty());
+        }
     }
 
     // ----------------------------------------------------------------------------- replays

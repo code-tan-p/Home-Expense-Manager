@@ -14,15 +14,20 @@
                     <input id="name" name="name" maxlength="60" autocomplete="name" required autofocus></div>
                 <div><label for="email">Email</label>
                     <input id="email" type="email" name="email" maxlength="120" autocomplete="username" required></div>
-                <div><label for="password">Password (at least 8 characters)</label>
-                    <input id="password" type="password" name="password" minlength="8" autocomplete="new-password" required></div>
+                <div><label for="password">Password</label>
+                    <input id="password" type="password" name="password" minlength="9" autocomplete="new-password" required
+                           data-new data-partner="confirm"></div>
                 <div><label for="confirm">Type the password again</label>
-                    <input id="confirm" type="password" name="confirm" minlength="8" autocomplete="new-password" required></div>
+                    <input id="confirm" type="password" name="confirm" minlength="9" autocomplete="new-password" required
+                           data-confirm="password"></div>
             </div>
-            <button class="btn primary" type="submit" style="margin-top:1rem">Create account</button>
+            <p><button class="btn" type="button" data-suggest="password">Suggest a strong password</button></p>
+            <p class="meta" id="pw-suggest-note" role="status"></p>
+            <button class="btn primary" type="submit">Create account</button>
         </form>
-        <p class="meta" style="margin-top:1rem">Already have an account? <a th:href="@{/login}">Sign in</a></p>
+        <p class="meta" style="margin-top:1rem">Already have an account? <a class="btn" th:href="@{/login}">Sign in</a></p>
     </section>
 </main>
+<script th:src="@{/js/password.js}"></script>
 </body>
 </html>

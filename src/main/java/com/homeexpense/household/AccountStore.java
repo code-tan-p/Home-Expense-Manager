@@ -59,6 +59,12 @@ public class AccountStore {
                 userId, codeHash, expiresAt.toString());
     }
 
+    public Optional<ResetCode> findResetByHash(String hash) {
+        return jdbc.query("SELECT * FROM password_reset WHERE code_hash = ?",
+                (r, i) -> new ResetCode(r.getLong("user_id"), r.getString("code_hash"),
+                        java.time.Instant.parse(r.getString("expires_at")), r.getInt("tries")), hash).stream().findFirst();
+    }
+
     public Optional<ResetCode> findResetCode(long userId) {
         return jdbc.query("SELECT * FROM password_reset WHERE user_id = ?",
                 (r, i) -> new ResetCode(r.getLong("user_id"), r.getString("code_hash"),
@@ -101,11 +107,11 @@ public class AccountStore {
         });
     }
 
-    /** Adds a person to a household; false when the email is already used. */
-    public synchronized boolean addUser(String email, String name, String passwordHash, String recoveryHash, long householdId) {
+    /** Adds a person to a household; false when the email is already used. (The old recovery_hash column is kept empty.) */
+    public synchronized boolean addUser(String email, String name, String passwordHash, long householdId) {
         try {
             jdbc.update("INSERT INTO app_user (email, name, password_hash, recovery_hash, household_id, created_at) VALUES (?,?,?,?,?,?)",
-                    email, name, passwordHash, recoveryHash, householdId, clock.instant().toString());
+                    email, name, passwordHash, "-", householdId, clock.instant().toString());
             return true;
         } catch (DuplicateKeyException e) {
             return false;
@@ -124,10 +130,6 @@ public class AccountStore {
 
     public void updatePassword(long userId, String passwordHash) {
         jdbc.update("UPDATE app_user SET password_hash = ? WHERE id = ?", passwordHash, userId);
-    }
-
-    public void updateRecovery(long userId, String recoveryHash) {
-        jdbc.update("UPDATE app_user SET recovery_hash = ? WHERE id = ?", recoveryHash, userId);
     }
 
     public synchronized void deleteHousehold(long householdId) {

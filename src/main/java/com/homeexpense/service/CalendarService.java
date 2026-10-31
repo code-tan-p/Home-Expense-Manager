@@ -160,15 +160,17 @@ public class CalendarService {
                 byDay.computeIfAbsent(record.getWorkDate(), d -> new ArrayList<>()).add(record);
             }
         }
-        boolean milk = kind(worker, month) == PaymentModel.PER_UNIT;
+        PaymentModel pay = kind(worker, month);
+        boolean milk = pay == PaymentModel.PER_UNIT;
+        boolean dayByDay = pay == PaymentModel.PER_DAY || pay == PaymentModel.HOURLY || pay == PaymentModel.PER_TASK;
         Map<LocalDate, DayCell> cells = new TreeMap<>();
         for (LocalDate d = month.atDay(1); !d.isAfter(month.atEndOfMonth()); d = d.plusDays(1)) {
-            cells.put(d, cell(worker, d, today, byDay.getOrDefault(d, List.of()), milk));
+            cells.put(d, cell(worker, d, today, byDay.getOrDefault(d, List.of()), milk, dayByDay));
         }
         return cells;
     }
 
-    private DayCell cell(Worker worker, LocalDate d, LocalDate today, List<WorkRecord> records, boolean milk) {
+    private DayCell cell(Worker worker, LocalDate d, LocalDate today, List<WorkRecord> records, boolean milk, boolean dayByDay) {
         if (!workerService.isEmployedOn(worker.getId(), d)) {
             return new DayCell(d, Status.NOT_EMPLOYED, "");
         }
@@ -199,7 +201,7 @@ public class CalendarService {
         if (off != null) {
             return new DayCell(d, off, "");
         }
-        if (scheduleService.entriesOn(worker.getId(), d).isEmpty()) {
+        if (dayByDay || scheduleService.entriesOn(worker.getId(), d).isEmpty()) {
             return new DayCell(d, Status.DAY_OFF, "");
         }
         return new DayCell(d, d.isAfter(today) ? Status.FUTURE : Status.NOT_RECORDED, "");

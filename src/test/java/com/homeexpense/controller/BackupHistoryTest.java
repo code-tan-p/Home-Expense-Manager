@@ -3,7 +3,6 @@ package com.homeexpense.controller;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -36,13 +35,5 @@ class BackupHistoryTest extends SqliteIntegrationTest {
         mockMvc.perform(get("/backup/automatic/..%2F..%2Fapplication.properties")).andExpect(status().is4xxClientError());
         mockMvc.perform(get("/backup/automatic/secret.db")).andExpect(status().isBadRequest());
         mockMvc.perform(get("/backup/automatic/home-expense-1999-01-01.db")).andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void overviewShowsHouseholdSpending() throws Exception {
-        mockMvc.perform(post("/expenses").param("categoryId", "1").param("spentOn", LocalDate.now().toString()).param("amount", "321")
-                .param("method", "CASH"));
-        mockMvc.perform(get("/overview")).andExpect(content().string(containsString("Household spending this month")))
-                .andExpect(content().string(containsString("₹321.00")));
     }
 }

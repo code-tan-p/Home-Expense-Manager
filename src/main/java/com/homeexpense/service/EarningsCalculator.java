@@ -272,8 +272,10 @@ public class EarningsCalculator {
 
         Set<Long> recordedEntries = records.stream().filter(WorkRecord::isScheduled)
                 .map(r -> r.getScheduleEntry().getId()).collect(Collectors.toSet());
+        boolean dayByDay = model.isPresent() && (model.get() == PaymentModel.PER_DAY || model.get() == PaymentModel.HOURLY
+                || model.get() == PaymentModel.PER_TASK);
         for (ScheduleEntry entry : entries) {
-            if (!recordedEntries.contains(entry.getId())) {
+            if (!dayByDay && !recordedEntries.contains(entry.getId())) {
                 ctx.unrecorded.add(new UnrecordedActivity(d, entry, model.orElse(null),
                         d + " (" + d.getDayOfWeek() + "): " + DailyWorkService.describe(entry)));
             }

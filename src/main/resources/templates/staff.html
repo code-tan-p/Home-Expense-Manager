@@ -34,7 +34,7 @@
         </div>
         <p class="meta"><a th:href="@{/staff/{id}/profile(id=${r.worker().id})}">Profile and history</a> · <a th:href="@{/calendar(workerId=${r.worker().id})}">Calendar</a></p>
         <details class="activity" th:if="${r.active()}">
-            <summary>Change pay, weekdays or last day</summary>
+            <summary>Change pay or last day<span th:if="${r.monthly()}">, or weekdays</span></summary>
             <form class="actions" th:action="@{/staff/{id}/pay(id=${r.worker().id})}" method="post" style="margin-top:.75rem">
                 <span class="meta">New pay (₹):</span>
                 <input class="small" type="text" name="rate" inputmode="decimal" required aria-label="New pay amount">
@@ -42,7 +42,7 @@
                 <input class="small" type="date" name="from" th:value="${today}" required aria-label="Starting on">
                 <button class="btn" type="submit">Save pay</button>
             </form>
-            <form class="actions" th:action="@{/staff/{id}/days(id=${r.worker().id})}" method="post" style="margin-top:.75rem">
+            <form class="actions" th:if="${r.monthly()}" th:action="@{/staff/{id}/days(id=${r.worker().id})}" method="post" style="margin-top:.75rem">
                 <span class="meta">Works on:</span>
                 <span class="days">
                     <label th:each="d : ${days}">
@@ -87,12 +87,15 @@
                 <div><label for="rate" id="rateLabel">Salary per month (₹)</label><input id="rate" type="text" name="rate" inputmode="decimal" placeholder="e.g. 5500" required>
                     <div class="meta" id="rateHint" style="margin-top:.25rem"></div></div>
             </div>
+            <div id="daysBlock">
             <label>Works on</label>
+            <p class="meta" style="margin:0 0 .5rem">Only for a monthly salary. A milkman and day-by-day workers need no weekdays.</p>
             <div class="days" style="margin-bottom:1.25rem">
                 <label th:each="d : ${days}">
                     <input type="checkbox" name="days" th:value="${d.name()}" th:checked="${d.value &lt;= 6}">
                     <span th:text="${#strings.substring(d.name(), 0, 3)}">MON</span>
                 </label>
+            </div>
             </div>
             <button class="btn primary" type="submit">Add worker</button>
         </form>
@@ -112,13 +115,12 @@
                 function refresh() {
                     var t = text[pay.value] || text.MONTHLY_SALARY;
                     label.textContent = t[0]; rate.placeholder = t[1]; hint.textContent = t[2];
+                    document.getElementById('daysBlock').style.display = pay.value === 'MONTHLY_SALARY' ? '' : 'none';
                 }
                 job.addEventListener('change', function () {
                     var name = job.options[job.selectedIndex].text.toLowerCase();
                     if (name.indexOf('milk') >= 0) {
                         pay.value = 'PER_UNIT';
-                        // A milkman delivers every day, so tick all seven weekdays.
-                        document.querySelectorAll('input[name=days]').forEach(function (box) { box.checked = true; });
                     }
                     refresh();
                 });

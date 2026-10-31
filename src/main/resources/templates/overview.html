@@ -30,16 +30,6 @@
             <strong class="total" th:text="${T(com.homeexpense.money.Money).format(advancePaise)}">₹0.00</strong></div>
     </section>
 
-    <section class="card" th:if="${spentPaise > 0}">
-        <h2>Household spending this month</h2>
-        <p><strong class="total" th:text="${T(com.homeexpense.money.Money).format(spentPaise)}">₹0.00</strong></p>
-        <ul>
-            <li th:each="t : ${topSpending}"><span th:text="${t.category}">Groceries</span>:
-                <strong th:text="${T(com.homeexpense.money.Money).format(t.totalPaise)}">₹0.00</strong></li>
-        </ul>
-        <a th:href="@{/expenses}">Open Expenses</a>
-    </section>
-
     <section class="card" th:if="${!alerts.isEmpty()}">
         <h2>Needs attention</h2>
         <ul>

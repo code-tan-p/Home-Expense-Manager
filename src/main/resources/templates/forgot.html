@@ -4,51 +4,21 @@
 <body>
 <header th:replace="~{fragments :: header('forgot')}"></header>
 <main>
-    <section class="card" style="max-width:26rem;margin:2rem auto" th:if="${mailEnabled}">
-        <h1>Forgot your password?</h1>
-        <p class="sub">We can email you a six-digit code.</p>
-        <div th:replace="~{fragments :: messages}"></div>
-        <form th:action="@{/forgot/email}" method="post">
-            <label for="mail-email">Email</label>
-            <input id="mail-email" type="email" name="email" autocomplete="username" required>
-            <button class="btn primary" type="submit" style="margin-top:.75rem">Email me a code</button>
-        </form>
-        <h2 style="margin-top:1.5rem">I have the code</h2>
-        <form th:action="@{/forgot/code}" method="post">
-            <div class="form-grid" style="grid-template-columns:1fr">
-                <div><label for="code-email">Email</label>
-                    <input id="code-email" type="email" name="email" autocomplete="username" required></div>
-                <div><label for="mailcode">Code from the email</label>
-                    <input id="mailcode" name="code" inputmode="numeric" autocomplete="one-time-code" required></div>
-                <div><label for="pw1">New password (at least 8 characters)</label>
-                    <input id="pw1" type="password" name="password" minlength="8" autocomplete="new-password" required></div>
-                <div><label for="pw2">Type it again</label>
-                    <input id="pw2" type="password" name="confirm" minlength="8" autocomplete="new-password" required></div>
-            </div>
-            <button class="btn primary" type="submit" style="margin-top:.75rem">Set new password</button>
-        </form>
-    </section>
-
     <section class="card" style="max-width:26rem;margin:2rem auto">
-        <h1 th:unless="${mailEnabled}">Forgot your password?</h1>
-        <h2 th:if="${mailEnabled}">Use your recovery code instead</h2>
-        <p class="sub">Type the recovery code that was shown when you created your account, and choose a new password.</p>
-        <th:block th:unless="${mailEnabled}"><div th:replace="~{fragments :: messages}"></div></th:block>
-        <form th:action="@{/forgot}" method="post">
-            <div class="form-grid" style="grid-template-columns:1fr">
-                <div><label for="email">Email</label>
-                    <input id="email" type="email" name="email" autocomplete="username" required autofocus></div>
-                <div><label for="code">Recovery code</label>
-                    <input id="code" name="code" placeholder="ABCD-EFGH-JKLM-NPQR" autocomplete="off" required></div>
-                <div><label for="password">New password (at least 8 characters)</label>
-                    <input id="password" type="password" name="password" minlength="8" autocomplete="new-password" required></div>
-                <div><label for="confirm">Type it again</label>
-                    <input id="confirm" type="password" name="confirm" minlength="8" autocomplete="new-password" required></div>
-            </div>
-            <button class="btn primary" type="submit" style="margin-top:1rem">Set new password</button>
-        </form>
-        <p class="meta" style="margin-top:1rem">Lost the code too? Only the person who runs this server can reset your account.
-            <a th:href="@{/login}">Back to sign in</a></p>
+        <h1>Forgot your password?</h1>
+        <div th:replace="~{fragments :: messages}"></div>
+        <div th:if="${mailEnabled}">
+            <p class="sub">Type your email. We will send you a link to choose a new password. The link works once, for 30 minutes.</p>
+            <form th:action="@{/forgot}" method="post">
+                <label for="email">Email</label>
+                <input id="email" type="email" name="email" autocomplete="username" required autofocus>
+                <button class="btn primary" type="submit" style="margin-top:.75rem">Send me the link</button>
+            </form>
+        </div>
+        <div th:unless="${mailEnabled}">
+            <p class="sub">Password reset by email is not set up on this server yet. Please ask the person who runs it to set up the email settings.</p>
+        </div>
+        <p class="meta" style="margin-top:1rem"><a class="btn" th:href="@{/login}">Back to sign in</a></p>
     </section>
 </main>
 </body>

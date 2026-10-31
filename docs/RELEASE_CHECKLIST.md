@@ -72,8 +72,8 @@ Status words: **DONE** (screen and test exist), **BACKEND** (service exists, no 
 ### 5. Household expenses (P1)
 | Item | Status |
 | --- | --- |
-| Daily expenses, categories, custom categories, method, date, notes | DONE |
-| Recurring, monthly summary, filter, audited edits | DONE (`ExpenseTest`, migration V10; database refuses edit or delete) |
+| Daily expenses, categories, custom categories, method, date, notes | WON'T | Removed on 31 Oct 2026: owner says the app is for worker pay only. Empty tables from V10 stay in the database |
+| Recurring, monthly summary, filter, audited edits | WON'T | same decision |
 | Budgets, trends, split, bills, receipt images | LATER |
 
 ### 6. Dashboard (P1)
@@ -199,6 +199,7 @@ bottom tab bar, litre chips, bigger Still-to-pay (P1b); Hindi (LATER).
 | 2026-10-30 | P1: reports and CSV, salary slip, expense module (V10) | 396 tests green |
 | 2026-10-30 | P1b: worker calendar on profile, litre buttons, email reset, proxy setting | 397 tests green |
 | 2026-10-30 | Remaining list: month-end screen, advances, bonus/deduction form, attendance %, missing days, extra-work form, advances report, backup history, spending on overview, staff search, dark mode | 400 tests green |
+| 2026-10-31 | Owner review round: expenses removed, strong passwords, email reset link, weekdays for monthly only, DELETE confirmation, header Sign out, buttons | 399 tests green; manual tests M1 to M8 open |
 | 2026-10-30 | Final check: real jar smoke test of 22 pages (all 200, no error text); Docker image built, healthy, non-root, account survived a container restart | passed |
 
 ## E. Not built yet (decided, with reason)
@@ -214,3 +215,45 @@ bottom tab bar, litre chips, bigger Still-to-pay (P1b); Hindi (LATER).
 | Audit-log screen | Every change is stored; a screen to read it is LATER |
 | Loading states | Pages are server-rendered and fast; double-click protection exists on payments |
 | Budgets, trends, charts, encryption, PIN, overtime | P2 by the roadmap |
+
+## F. Owner's manual review (31 Oct 2026): decisions and to-do
+
+Decisions the owner made after trying the app in the browser pane. Each line is ticked when built and tested.
+
+**Decisions**
+1. Password: at least 9 characters with an uppercase letter, a lowercase letter, a digit and a special character; strength bar,
+   show-password eye on every password box, live "passwords match" message, and a "suggest a strong password" button.
+2. Forgot password: email link only (valid 30 minutes, one use). The recovery code and the Change password form are removed.
+   Until the server has mail settings, nobody can reset a password (the page says so).
+3. "Works on" weekdays: only for monthly-salary workers. A milkman is every day automatically. Per-day, hourly and per-task
+   workers appear on Today every day; only the days they came are marked, with no "not recorded" nagging.
+4. Household Expenses module: removed completely (menu, page, overview card, CSV, tests). Its empty tables stay in the database.
+5. Delete account: type the word DELETE and the password (no tick box).
+6. Action links are buttons, not highlighted text links, on every page.
+7. One Sign out, in the header, always visible on a phone (not hidden in the scrolling menu). No second Sign out on Account.
+
+**Build and test**
+- [x] Expenses module removed
+- [x] Password rules, strength bar, eye, live match, suggest button (server rule in `AccountService`, page script `static/js/password.js`; `SignUpTest`)
+- [x] Email reset link; recovery code and Change password removed (`/forgot` then `/reset`; link needs the mail settings and `HOME_EXPENSE_BASE_URL`; tested with a stand-in mailer only)
+- [x] Weekdays only for monthly workers; others every day without nagging (`StaffController`, `EarningsCalculator`; `BreakItTest`, `EarningsLifecycleIntegrationTest`)
+- [x] Account page: delete needs DELETE + password; single header Sign out (`AccountController`, `fragments.html`)
+- [x] Action links turned into buttons (staff, reports, pay, settlement, attendance, profile, login, sign-up; owner to confirm every page by eye)
+- [~] Header brand readable in dark mode (done); Reports table on a phone still scrolls sideways (owner to judge)
+- [~] 399 tests green on 2026-10-31 (the three tests that expected the old weekday and "not recorded" rules were rewritten); Docker re-check and push still to do
+
+**Needs the owner to test by hand after this build** (tick each when done)
+- [ ] M1. Sign up with a weak password (refused, with the reason), then a strong one; try the eye and "Suggest a strong password"; type a different second password and watch the live message.
+- [ ] M2. Forgot password with the owner's real mail settings: link arrives, opens `/reset`, sets a new password, works once, expires after 30 minutes.
+- [ ] M3. Add a monthly worker (weekdays shown), a per-day worker and a milkman (no weekdays shown); open Today on a Sunday and check each is listed correctly and nobody nags about "not recorded".
+- [ ] M4. Close a month for a per-day worker with some days unmarked; check the pay is only for the days marked.
+- [ ] M5. Delete an account: wrong word, wrong password, then the right ones; check the records are really gone and the email can sign up again.
+- [ ] M6. On a real phone, light and dark mode: every screen readable, Sign out visible in the header, every action is a button, Reports table usable.
+- [ ] M7. Check no Expenses menu, page (`/expenses` gives a not-found page) or overview card is left.
+- [ ] M8. Docker: `docker compose up`, sign up, restart the container, sign in again.
+Original list, kept for reference:
+- Sign up with a weak, then a strong password; use the eye and the suggest button.
+- Forgot password with real mail settings (the owner supplies `SPRING_MAIL_*`, `HOME_EXPENSE_MAIL_FROM`, `HOME_EXPENSE_BASE_URL`).
+- Add a monthly, a per-day and a milk worker; check the Today screen for each.
+- Delete an account with a wrong and a right confirmation.
+- Check every screen on a real phone, in light and dark mode.

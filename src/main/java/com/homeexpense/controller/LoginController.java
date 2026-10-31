@@ -1,15 +1,15 @@
 package com.homeexpense.controller;
 
-import com.homeexpense.config.SecurityConfig;
 import com.homeexpense.config.AttemptLimiter;
+import com.homeexpense.config.SecurityConfig;
 import com.homeexpense.exception.BusinessRuleException;
-import com.homeexpense.household.AccountStore;
+import com.homeexpense.household.AccountStore.UserRecord;
 import com.homeexpense.service.AccountService;
 import com.homeexpense.service.MailService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.security.core.Authentication;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,26 +17,27 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-/** Sign in, sign up and password recovery: the pages a visitor can reach without an account. */
+/** Sign in, sign up and password reset by emailed link: the pages a visitor can reach without an account. */
 @Controller
 public class LoginController {
 
     private final AccountService accounts;
-    private final AccountStore store;
     private final SessionSignIn sessions;
     private final AttemptLimiter signUps;
     private final AttemptLimiter recovery;
     private final MailService mail;
+    private final String baseUrl;
 
-    public LoginController(AccountService accounts, AccountStore store, SessionSignIn sessions,
+    public LoginController(AccountService accounts, SessionSignIn sessions,
                            @Qualifier("signUpLimiter") AttemptLimiter signUps,
-                           @Qualifier("recoveryLimiter") AttemptLimiter recovery, MailService mail) {
-        this.mail = mail;
+                           @Qualifier("recoveryLimiter") AttemptLimiter recovery, MailService mail,
+                           @Value("${home-expense.base-url:}") String baseUrl) {
         this.accounts = accounts;
-        this.store = store;
         this.sessions = sessions;
         this.signUps = signUps;
         this.recovery = recovery;
+        this.mail = mail;
+        this.baseUrl = baseUrl == null ? "" : baseUrl.strip().replaceAll("/+$", "");
     }
 
     @GetMapping("/login")
@@ -59,11 +60,11 @@ public class LoginController {
         if (signUps.blocked(address)) {
             throw new BusinessRuleException("Too many accounts were made from this address. Please try again in an hour.");
         }
-        AccountService.SignedUp created = accounts.signUp(name, email, password, confirm);
+        UserRecord created = accounts.signUp(name, email, password, confirm);
         signUps.record(address);
-        sessions.signIn(request, response, created.user());
-        flash.addFlashAttribute("recoveryCode", AccountService.pretty(created.recoveryCode()));
-        return "redirect:/welcome";
+        sessions.signIn(request, response, created);
+        flash.addFlashAttribute("ok", "Welcome, " + created.name() + "! Your account is ready. Add the people who work for you on the Staff page.");
+        return "redirect:/";
     }
 
     @GetMapping("/forgot")
@@ -73,33 +74,9 @@ public class LoginController {
         return "forgot";
     }
 
+    /** Emails a reset link. The answer is the same whether or not the email has an account. */
     @PostMapping("/forgot")
-    public String forgot(@RequestParam String email, @RequestParam String code, @RequestParam String password,
-                         @RequestParam String confirm, HttpServletRequest request, HttpServletResponse response,
-                         RedirectAttributes flash) {
-        String address = SecurityConfig.addressKey(request);
-        String who = SecurityConfig.emailKey(email);
-        if (recovery.blocked(address) || recovery.blocked(who)) {
-            throw new BusinessRuleException("Too many wrong tries. Please wait 10 minutes and try again.");
-        }
-        AccountService.SignedUp reset;
-        try {
-            reset = accounts.resetPassword(email, code, password, confirm);
-        } catch (BusinessRuleException e) {
-            recovery.record(address);
-            recovery.record(who);
-            throw e;
-        }
-        recovery.clear(who);
-        sessions.signIn(request, response, reset.user());
-        flash.addFlashAttribute("recoveryCode", AccountService.pretty(reset.recoveryCode()));
-        flash.addFlashAttribute("reset", true);
-        return "redirect:/welcome";
-    }
-
-    /** Emails a code. The answer is the same whether or not the email has an account. */
-    @PostMapping("/forgot/email")
-    public String forgotByEmail(@RequestParam String email, HttpServletRequest request, RedirectAttributes flash) {
+    public String forgot(@RequestParam String email, HttpServletRequest request, RedirectAttributes flash) {
         String address = SecurityConfig.addressKey(request);
         String who = SecurityConfig.emailKey(email);
         if (recovery.blocked(address) || recovery.blocked(who)) {
@@ -107,41 +84,43 @@ public class LoginController {
         }
         recovery.record(address);
         recovery.record(who);
-        accounts.sendResetCode(email, mail);
-        flash.addFlashAttribute("ok", "If that email has an account, we have sent a six-digit code. It works for 15 minutes.");
+        accounts.sendResetLink(email, baseUrl.isEmpty() ? requestBase(request) : baseUrl, mail);
+        flash.addFlashAttribute("ok", "If that email has an account, we have sent a link to choose a new password. It works for 30 minutes.");
         return "redirect:/forgot";
     }
 
-    @PostMapping("/forgot/code")
-    public String forgotWithCode(@RequestParam String email, @RequestParam String code, @RequestParam String password,
-                                 @RequestParam String confirm, HttpServletRequest request, HttpServletResponse response,
-                                 RedirectAttributes flash) {
+    @GetMapping("/reset")
+    public String resetForm(@RequestParam(defaultValue = "") String token, Model model) {
+        model.addAttribute("page", "");
+        model.addAttribute("token", token);
+        model.addAttribute("valid", accounts.linkIsValid(token));
+        return "reset";
+    }
+
+    @PostMapping("/reset")
+    public String reset(@RequestParam String token, @RequestParam String password, @RequestParam String confirm,
+                        HttpServletRequest request, HttpServletResponse response, RedirectAttributes flash) {
         String address = SecurityConfig.addressKey(request);
-        String who = SecurityConfig.emailKey(email);
-        if (recovery.blocked(address) || recovery.blocked(who)) {
-            throw new BusinessRuleException("Too many wrong tries. Please wait 10 minutes and try again.");
+        if (recovery.blocked(address)) {
+            throw new BusinessRuleException("Too many tries. Please wait 10 minutes and try again.");
         }
-        AccountStore.UserRecord user;
+        UserRecord user;
         try {
-            user = accounts.resetWithEmailCode(email, code, password, confirm);
+            user = accounts.resetWithLink(token, password, confirm);
         } catch (BusinessRuleException e) {
             recovery.record(address);
-            recovery.record(who);
             throw e;
         }
-        recovery.clear(who);
         sessions.signIn(request, response, user);
         flash.addFlashAttribute("ok", "Your password is changed and you are signed in.");
         return "redirect:/";
     }
 
-    /** Shown once after sign-up or recovery: the new recovery code. */
-    @GetMapping("/welcome")
-    public String welcome(Model model, Authentication authentication) {
-        if (!model.containsAttribute("recoveryCode")) {
-            return "redirect:/";
-        }
-        model.addAttribute("page", "welcome");
-        return "welcome";
+    /** The address people used to reach the site, for the link in the email, when no fixed address is configured. */
+    private static String requestBase(HttpServletRequest request) {
+        String scheme = request.getScheme();
+        int port = request.getServerPort();
+        boolean standard = ("http".equals(scheme) && port == 80) || ("https".equals(scheme) && port == 443);
+        return scheme + "://" + request.getServerName() + (standard ? "" : ":" + port);
     }
 }

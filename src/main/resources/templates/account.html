@@ -9,44 +9,32 @@
 
     <div th:replace="~{fragments :: messages}"></div>
 
-    <section class="card" th:if="${canChange}">
-        <h2>Change password</h2>
-        <form th:action="@{/account/password/change}" method="post">
-            <div class="form-grid">
-                <div><label for="current">Current password</label>
-                    <input id="current" type="password" name="current" autocomplete="current-password" required></div>
-                <div><label for="newpw">New password (at least 8 characters)</label>
-                    <input id="newpw" type="password" name="password" autocomplete="new-password" minlength="8" required></div>
-                <div><label for="again">Type the new one again</label>
-                    <input id="again" type="password" name="confirm" autocomplete="new-password" minlength="8" required></div>
-            </div>
-            <button class="btn primary" type="submit">Change password</button>
-        </form>
-    </section>
-
     <section class="card">
         <h2>Your data</h2>
-        <p class="meta">Download a copy of all your records, or restore one, on the <a th:href="@{/backup}">Backup</a> page.</p>
+        <p class="meta">Download a copy of all your records, or restore one, on the Backup page.</p>
+        <a class="btn" th:href="@{/backup}">Open Backup</a>
     </section>
 
     <section class="card">
-        <h2>Sign out</h2>
-        <p class="meta">Close your session on this browser. Use it on a shared phone or computer.</p>
-        <form th:action="@{/logout}" method="post">
-            <button class="btn" type="submit">Sign out</button>
-        </form>
+        <h2>Password</h2>
+        <p class="meta">To choose a new password, sign out and use Forgot password on the sign-in page. We will email you a link.</p>
     </section>
 
-    <section class="card" th:if="${canChange}">
+    <section class="card" th:if="${canDelete}">
         <h2>Delete my account</h2>
-        <p class="meta">This removes your account and all your records for good. Download a backup first if you may need them.</p>
-        <form th:action="@{/account/delete}" method="post" class="actions">
-            <input type="password" name="password" placeholder="Your password" aria-label="Your password"
-                   autocomplete="current-password" required style="max-width:16rem">
-            <label><input type="checkbox" name="sure" value="yes"> Yes, delete everything</label>
-            <button class="btn caution" type="submit">Delete account</button>
+        <p class="meta">This removes your account and all your records for good, and it cannot be undone. Download a backup first if you may need them.
+            To confirm, type the word <strong>DELETE</strong> and your password.</p>
+        <form th:action="@{/account/delete}" method="post">
+            <div class="form-grid">
+                <div><label for="typed">Type DELETE</label>
+                    <input id="typed" type="text" name="typed" autocomplete="off" required placeholder="DELETE"></div>
+                <div><label for="password">Your password</label>
+                    <input id="password" type="password" name="password" autocomplete="current-password" required></div>
+            </div>
+            <button class="btn caution" type="submit">Delete account for good</button>
         </form>
     </section>
 </main>
+<script th:src="@{/js/password.js}"></script>
 </body>
 </html>

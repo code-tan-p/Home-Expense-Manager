@@ -50,7 +50,7 @@ public class SecurityConfig {
             response.sendRedirect(request.getContextPath() + "/login?error");
         };
         http.authorizeHttpRequests(a -> a
-                        .requestMatchers("/css/**", "/js/**", "/images/**", "/favicon.ico", "/login", "/signup", "/forgot", "/forgot/**",
+                        .requestMatchers("/css/**", "/js/**", "/images/**", "/favicon.ico", "/login", "/signup", "/forgot", "/reset",
                                 "/error", "/actuator/health", "/actuator/health/**").permitAll()
                         .anyRequest().access((authentication, context) ->
                                 new AuthorizationDecision(households.isFixed() || signedIn(authentication.get()))))

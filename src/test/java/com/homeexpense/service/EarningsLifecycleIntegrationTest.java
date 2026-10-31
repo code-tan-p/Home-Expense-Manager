@@ -209,15 +209,13 @@ class EarningsLifecycleIntegrationTest extends SqliteIntegrationTest {
     }
 
     @Test
-    void nonSalaryConfirmationUsesItsOwnWording() {
+    void aDayByDayWorkerIsNotNaggedAboutDaysTheyDidNotCome() {
         mop("2026-01-05", WorkDetails.completed());
 
-        earningsService.confirmUnrecorded(ravi.getId(), JANUARY);
+        EarningsResult result = fx.january(ravi);
 
-        String statement = jdbc.queryForObject("SELECT statement FROM earning_unrecorded_confirmation WHERE worker_id = ?", String.class, ravi.getId());
-        assertThat(statement).startsWith(EarningsService.OTHER_STATEMENT).contains("2026-01-12", "2026-01-19", "2026-01-26")
-                .doesNotContain("2026-01-05");
-        assertThat(fx.january(ravi).totalPaise()).as("unrecorded activities earn nothing").isEqualTo(5000L);
+        assertThat(result.blockers()).as("days not marked are simply days they did not come").isEmpty();
+        assertThat(result.totalPaise()).isEqualTo(5000L);
     }
 
     @Test
@@ -236,9 +234,6 @@ class EarningsLifecycleIntegrationTest extends SqliteIntegrationTest {
                 .isInstanceOf(BusinessRuleException.class).hasMessageContaining("first");
         mop("2026-01-05", WorkDetails.completed());
         fx.january(ravi);
-        assertThatThrownBy(() -> earningsService.finalizeMonth(ravi.getId(), JANUARY, 5000))
-                .isInstanceOf(BusinessRuleException.class).hasMessageContaining("cannot be finalized yet").hasMessageContaining("not recorded");
-
         for (String monday : List.of("2026-01-12", "2026-01-19", "2026-01-26")) {
             mop(monday, WorkDetails.completed());
         }

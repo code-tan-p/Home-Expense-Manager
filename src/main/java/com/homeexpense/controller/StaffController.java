@@ -58,7 +58,7 @@ public class StaffController {
         }
     }
 
-    public record StaffRow(Worker worker, boolean active, String payText, java.util.Set<DayOfWeek> days) {
+    public record StaffRow(Worker worker, boolean active, String payText, java.util.Set<DayOfWeek> days, boolean monthly) {
     }
 
     private final WorkerService workerService;
@@ -82,7 +82,8 @@ public class StaffController {
         List<StaffRow> rows = new ArrayList<>();
         for (Worker worker : workerService.listAllWorkers()) {
             rows.add(new StaffRow(worker, workerService.isActiveToday(worker.getId()), payText(worker, today),
-                    currentDays(worker.getId(), today)));
+                    currentDays(worker.getId(), today),
+                    payService.primaryModelOn(worker.getId(), today).filter(m -> m == PaymentModel.MONTHLY_SALARY).isPresent()));
         }
         model.addAttribute("page", "staff");
         model.addAttribute("rows", rows);
@@ -104,7 +105,11 @@ public class StaffController {
         phone = InputRules.optionalPhone(phone);
         rate = InputRules.requireRupees(rate, "the pay amount");
         InputRules.requireDate(start, LocalDate.now(clock));
-        if (days == null || days.isEmpty()) {
+        // Only a monthly salary is tied to weekdays. Everyone else can come on any day, so they are listed every day
+        // and only the days they really came are marked.
+        if (pay != PayChoice.MONTHLY_SALARY) {
+            days = java.util.Arrays.asList(DayOfWeek.values());
+        } else if (days == null || days.isEmpty()) {
             throw new com.homeexpense.exception.BusinessRuleException(
                     "Tick at least one weekday, otherwise this person will never show up on the Today screen.");
         }

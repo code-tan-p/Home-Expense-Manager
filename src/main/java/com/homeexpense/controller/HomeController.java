@@ -54,7 +54,10 @@ public class HomeController {
         model.addAttribute("isToday", day.equals(today));
         model.addAttribute("view", view);
         model.addAttribute("payModels", payModels);
-        model.addAttribute("pending", view.workers().stream().mapToLong(DayView.WorkerDay::notRecordedCount).sum());
+        // Day-by-day workers (per day, per hour, per task) are only marked on the days they came, so they never count as "to record".
+        model.addAttribute("pending", view.workers().stream()
+                .filter(w -> !dayByDay(payModels.get(w.worker().getId())))
+                .mapToLong(DayView.WorkerDay::notRecordedCount).sum());
         return "index";
     }
 
@@ -128,6 +131,9 @@ public class HomeController {
         for (DayView.WorkerDay day : dailyWorkService.dayView(date).workers()) {
             Long workerId = day.worker().getId();
             PaymentModel model = payService.primaryModelOn(workerId, date).orElse(null);
+            if (dayByDay(model)) {
+                continue;
+            }
             boolean needsAmount = model == PaymentModel.PER_UNIT || model == PaymentModel.HOURLY;
             for (DayView.ExpectedActivity activity : day.expected()) {
                 if (activity.isRecorded()) {
@@ -153,5 +159,10 @@ public class HomeController {
             flash.addFlashAttribute("error", String.join(" ", problems));
         }
         return "redirect:/?date=" + date;
+    }
+
+    /** Paid for the days they come, not for a fixed schedule. */
+    static boolean dayByDay(PaymentModel model) {
+        return model == PaymentModel.PER_DAY || model == PaymentModel.HOURLY || model == PaymentModel.PER_TASK;
     }
 }

@@ -15,7 +15,6 @@ import com.homeexpense.repository.PaymentRepository;
 import com.homeexpense.repository.PaymentVoidRepository;
 import com.homeexpense.service.DailyWorkService;
 import com.homeexpense.service.EarningsService;
-import com.homeexpense.service.ExpenseService;
 import com.homeexpense.service.SettlementService;
 import com.homeexpense.service.WorkerService;
 import org.springframework.stereotype.Controller;
@@ -37,12 +36,9 @@ public class DashboardController {
     private final PaymentRepository payments;
     private final PaymentVoidRepository voids;
     private final Clock clock;
-    private final ExpenseService expenses;
 
     public DashboardController(WorkerService workers, DailyWorkService dailyWork, EarningsService earnings,
-                               SettlementService settlements, PaymentRepository payments, PaymentVoidRepository voids, Clock clock,
-                               ExpenseService expenses) {
-        this.expenses = expenses;
+                               SettlementService settlements, PaymentRepository payments, PaymentVoidRepository voids, Clock clock) {
         this.workers = workers;
         this.dailyWork = dailyWork;
         this.earnings = earnings;
@@ -98,9 +94,6 @@ public class DashboardController {
         model.addAttribute("paidPaise", paid);
         model.addAttribute("outstandingPaise", earned - paid);
         model.addAttribute("advancePaise", advances);
-        var spending = expenses.totalsByCategory(month);
-        model.addAttribute("spentPaise", spending.stream().mapToLong(ExpenseService.CategoryTotal::totalPaise).sum());
-        model.addAttribute("topSpending", spending.stream().limit(3).toList());
         model.addAttribute("alerts", alerts);
         model.addAttribute("recent", recent.stream().limit(5).toList());
         return "overview";
