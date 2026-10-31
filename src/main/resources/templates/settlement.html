@@ -74,6 +74,17 @@
         </form>
     </section>
 
+    <section class="card" th:if="${view != null and !settled and view.carriedOutPaise() == 0 and view.outstandingPaise() < 0}">
+        <h2>Move an amount carried from an earlier month</h2>
+        <p class="meta">If part of this month's balance only exists because an earlier month was carried forward, you can move it to a later month.</p>
+        <form th:action="@{/settlement/{id}/carry(id=${worker.id})}" method="post" class="actions">
+            <input type="hidden" name="month" th:value="${month}">
+            <input class="small" type="month" name="laterMonth" required aria-label="Later month">
+            <input class="small" type="text" name="reason" maxlength="200" required placeholder="Reason" aria-label="Reason">
+            <button class="btn" type="submit">Move it</button>
+        </form>
+    </section>
+
     <section class="card" th:if="${!history.isEmpty()}">
         <h2>Earlier versions</h2>
         <ul>

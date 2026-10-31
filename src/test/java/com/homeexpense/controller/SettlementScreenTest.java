@@ -49,6 +49,10 @@ class SettlementScreenTest extends SqliteIntegrationTest {
                 .andExpect(content().string(containsString("festival bonus")))
                 .andExpect(content().string(containsString("Reopen this month")));
 
+        // Nothing was carried forward, so moving a carried amount is refused with a plain message.
+        mockMvc.perform(post("/settlement/" + id + "/carry").header("Referer", "http://localhost/settlement/" + id)
+                        .param("month", "2026-03").param("laterMonth", "2026-04").param("reason", "x"))
+                .andExpect(flash().attributeExists("error"));
         mockMvc.perform(post("/settlement/" + id + "/reopen").header("Referer", "http://localhost/settlement/" + id)
                         .param("month", "2026-03").param("reason", "wrong days"))
                 .andExpect(flash().attributeExists("error"));

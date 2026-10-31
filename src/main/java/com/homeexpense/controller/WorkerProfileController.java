@@ -3,7 +3,12 @@ package com.homeexpense.controller;
 import java.time.Clock;
 import java.time.YearMonth;
 
+import java.time.LocalDate;
+
+import com.homeexpense.exception.BusinessRuleException;
+import com.homeexpense.model.AbsenceReason;
 import com.homeexpense.service.CalendarService;
+import com.homeexpense.service.DailyWorkService;
 import com.homeexpense.service.PayService;
 import com.homeexpense.service.WorkerService;
 import org.springframework.stereotype.Controller;
@@ -22,8 +27,11 @@ public class WorkerProfileController {
     private final PayService payService;
     private final CalendarService calendar;
     private final Clock clock;
+    private final DailyWorkService dailyWork;
 
-    public WorkerProfileController(WorkerService workers, PayService payService, CalendarService calendar, Clock clock) {
+    public WorkerProfileController(WorkerService workers, PayService payService, CalendarService calendar, Clock clock,
+                                   DailyWorkService dailyWork) {
+        this.dailyWork = dailyWork;
         this.calendar = calendar;
         this.clock = clock;
         this.workers = workers;
@@ -49,6 +57,41 @@ public class WorkerProfileController {
         workers.updateDetails(id, InputRules.requireName(name), InputRules.optionalPhone(phone),
                 InputRules.limited(notes, 500, "the notes"));
         flash.addFlashAttribute("ok", "Details saved.");
+        return "redirect:/staff/" + id + "/profile";
+    }
+
+    /**
+     * A holiday or leave for this worker only, for one day or a run of days (up to 31). It is recorded day by day, so
+     * it shows on the calendar and in the pay exactly like a holiday marked on the Today screen. Days that are this
+     * worker's regular days off are skipped, and days already recorded are left as they are.
+     */
+    @PostMapping("/staff/{id}/holiday")
+    public String holiday(@PathVariable Long id, @RequestParam LocalDate from, @RequestParam(required = false) LocalDate to,
+                          @RequestParam AbsenceReason kind, RedirectAttributes flash) {
+        LocalDate today = LocalDate.now(clock);
+        LocalDate last = to == null ? from : to;
+        InputRules.requireDate(from, today);
+        InputRules.requireDate(last, today);
+        if (last.isBefore(from)) {
+            throw new BusinessRuleException("The last day is before the first day.");
+        }
+        if (kind == AbsenceReason.UNAUTHORIZED_ABSENCE) {
+            throw new BusinessRuleException("Choose Holiday or Leave. For a day they did not come, use the Today screen.");
+        }
+        if (from.plusDays(31).isBefore(last)) {
+            throw new BusinessRuleException("Please add at most 31 days at a time.");
+        }
+        int recorded = 0;
+        for (LocalDate day = from; !day.isAfter(last); day = day.plusDays(1)) {
+            if (!workers.isEmployedOn(id, day)) {
+                continue;
+            }
+            recorded += dailyWork.markWholeDay(id, day, kind, null).records().size();
+        }
+        flash.addFlashAttribute("ok", recorded == 0
+                ? "Nothing was added: those days are regular days off or already recorded."
+                : recorded + (recorded == 1 ? " day" : " days") + " saved as "
+                        + (kind == AbsenceReason.HOUSEHOLD_HOLIDAY ? "holiday" : "leave") + ".");
         return "redirect:/staff/" + id + "/profile";
     }
 }

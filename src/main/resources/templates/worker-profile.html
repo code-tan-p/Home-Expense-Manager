@@ -20,6 +20,21 @@
     </section>
 
     <section class="card">
+        <h2>Holiday or leave for <span th:text="${worker.name}">Name</span> only</h2>
+        <p class="meta">Add a day, or a run of days, when only this person is off (for example a festival at their home). It is paid
+            like a holiday and shows on the calendar. Other workers are not affected.</p>
+        <form th:action="@{/staff/{id}/holiday(id=${worker.id})}" method="post" class="actions">
+            <label class="meta">From <input class="small" type="date" name="from" required></label>
+            <label class="meta">To (optional) <input class="small" type="date" name="to"></label>
+            <select name="kind" aria-label="Holiday or leave" style="width:auto">
+                <option value="HOUSEHOLD_HOLIDAY">Holiday (we are away)</option>
+                <option value="APPROVED_LEAVE">Leave (they asked)</option>
+            </select>
+            <button class="btn" type="submit">Add</button>
+        </form>
+    </section>
+
+    <section class="card">
         <h2>Details</h2>
         <form th:action="@{/staff/{id}/details(id=${worker.id})}" method="post">
             <div class="form-grid">

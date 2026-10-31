@@ -43,5 +43,17 @@ class WorkerProfileTest extends SqliteIntegrationTest {
                         .param("name", "  "))
                 .andExpect(flash().attributeExists("error"));
         mockMvc.perform(get("/staff")).andExpect(content().string(containsString("Profile and history")));
+
+        // A holiday for this worker only: two scheduled days are saved, and the calendar shows them.
+        mockMvc.perform(post("/staff/" + id + "/holiday").param("from", "2026-03-02").param("to", "2026-03-04").param("kind", "HOUSEHOLD_HOLIDAY"))
+                .andExpect(flash().attribute("ok", containsString("saved as holiday")));
+        mockMvc.perform(get("/calendar").param("workerId", id.toString()).param("month", "2026-03"))
+                .andExpect(content().string(containsString("Holiday")));
+        mockMvc.perform(post("/staff/" + id + "/holiday").header("Referer", "http://localhost/staff/" + id + "/profile")
+                        .param("from", "2026-03-10").param("to", "2026-03-09").param("kind", "HOUSEHOLD_HOLIDAY"))
+                .andExpect(flash().attributeExists("error"));
+        mockMvc.perform(post("/staff/" + id + "/holiday").header("Referer", "http://localhost/staff/" + id + "/profile")
+                        .param("from", "2026-03-10").param("kind", "UNAUTHORIZED_ABSENCE"))
+                .andExpect(flash().attributeExists("error"));
     }
 }

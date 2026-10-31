@@ -81,6 +81,18 @@ public class SettlementController {
         return "redirect:/settlement/" + workerId + "?month=" + month;
     }
 
+    /** Moves the part of a balance that came from an earlier carry-forward to a later month. */
+    @PostMapping("/settlement/{workerId}/carry")
+    public String carry(@PathVariable Long workerId, @RequestParam YearMonth month, @RequestParam YearMonth laterMonth,
+                        @RequestParam String reason, RedirectAttributes flash) {
+        LocalDate today = LocalDate.now(clock);
+        InputRules.requireMonth(month, today);
+        InputRules.requireMonth(laterMonth, today);
+        settlements.correctCarry(workerId, month, laterMonth, InputRules.limited(reason, 200, "the reason"));
+        flash.addFlashAttribute("ok", "Moved to " + laterMonth + ".");
+        return "redirect:/settlement/" + workerId + "?month=" + month;
+    }
+
     @PostMapping("/settlement/{workerId}/correction")
     public String correction(@PathVariable Long workerId, @RequestParam YearMonth month, @RequestParam String direction,
                              @RequestParam String amount, @RequestParam(defaultValue = "") String owed, @RequestParam String reason,
