@@ -333,6 +333,29 @@ public class EarningsService {
     public record Preview(long totalPaise, List<String> blockers, List<String> warnings, boolean finalized, List<Line> lines) {
     }
 
+    private static final java.util.regex.Pattern ISO_DATE = java.util.regex.Pattern.compile("(\\d{4})-(\\d{2})-(\\d{2})");
+
+    /**
+     * The same sentence without the technical bits a household does not need: rate numbers, the "one day line per
+     * date" note, and dates such as 2026-10-05 (shown as 5 Oct). What is saved in the database is not changed.
+     */
+    public static String plain(String text) {
+        if (text == null) {
+            return null;
+        }
+        String clean = text.replaceAll("\\s*\\((?:standard |specific )?rate #\\d+\\)", "")
+                .replaceAll("\\s*\\((?:one day line per date)\\)", "")
+                .replaceAll("\\s*\\(scheduled work done\\)", "");
+        java.util.regex.Matcher m = ISO_DATE.matcher(clean);
+        StringBuilder out = new StringBuilder();
+        while (m.find()) {
+            java.time.LocalDate date = java.time.LocalDate.of(Integer.parseInt(m.group(1)), Integer.parseInt(m.group(2)), Integer.parseInt(m.group(3)));
+            m.appendReplacement(out, date.getDayOfMonth() + " " + date.getMonth().getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.ENGLISH));
+        }
+        m.appendTail(out);
+        return out.toString().replace(" .", ".");
+    }
+
     /** One explained line of a month: the day it is for (may be empty), the explanation, and the amount (null while it needs review). */
     public record Line(java.time.LocalDate date, String text, Long amountPaise) {
     }
@@ -349,7 +372,7 @@ public class EarningsService {
         if (run != null && !run.isDraft()) {
             EarningsResult saved = result(run, List.of());
             return new Preview(saved.totalPaise(), saved.blockers(), saved.warnings(), true,
-                    saved.lines().stream().map(l -> new Line(l.getWorkDate(), l.getExplanation(), l.getAmountPaise())).toList());
+                    saved.lines().stream().map(l -> new Line(l.getWorkDate(), plain(l.getExplanation()), l.getAmountPaise())).toList());
         }
         EarningsCalculator.Calculation calc = calculator.calculate(worker, month);
         long total = 0;
@@ -359,7 +382,7 @@ public class EarningsService {
             }
         }
         return new Preview(total, calc.blockers(), calc.warnings(), false,
-                calc.lines().stream().map(l -> new Line(l.date, l.explanation, l.amountPaise)).toList());
+                calc.lines().stream().map(l -> new Line(l.date, plain(l.explanation), l.amountPaise)).toList());
     }
 
     // ------------------------------------------------------------------ helpers

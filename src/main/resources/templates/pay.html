@@ -36,14 +36,14 @@
                 <span th:if="${r.summary().soFar()}">(so far this month)</span>
             </p>
             <p class="meta">
-                Came <strong th:text="${r.summary().came()}">0</strong> days
+                Came <strong th:text="${r.summary().came()}">0</strong> <span th:text="${r.summary().came() == 1 ? 'day' : 'days'}">days</span>
                 <span th:if="${r.summary().leave() > 0}"> · <span th:text="${r.summary().leave()}">0</span> on leave</span>
                 <span th:if="${r.summary().holiday() > 0}"> · <span th:text="${r.summary().holiday()}">0</span> holiday</span>
                 <span th:if="${r.summary().noDelivery() > 0}"> · <span th:text="${r.summary().noDelivery()}">0</span> no delivery</span>
                 <span th:if="${r.summary().absent() > 0}"> · <span th:text="${r.summary().absent()}">0</span> didn't come</span>
-                <span th:if="${r.summary().dayOff() > 0}"> · <span th:text="${r.summary().dayOff()}">0</span> days off</span>
+                <span th:if="${r.summary().dayOff() > 0}"> · <span th:text="${r.summary().dayOff()}">0</span> <span th:text="${r.summary().dayOff() == 1 ? 'day' : 'days'}">days</span> off</span>
                 <span th:if="${r.summary().notRecorded() > 0}"> · <span th:text="${r.summary().notRecorded()}">0</span> not recorded</span>
-                · <a th:href="@{/calendar(workerId=${r.worker().id}, month=${month})}">See calendar</a>
+                · <a class="btn tiny" th:href="@{/calendar(workerId=${r.worker().id}, month=${month})}">See calendar</a>
             </p>
         </div>
 
@@ -88,7 +88,7 @@
             <p class="meta" th:if="${!r.earnings().blockers().isEmpty()}"><strong>Before you pay:</strong></p>
             <ul class="plain" th:if="${!r.earnings().blockers().isEmpty()}">
                 <li th:each="b : ${r.earnings().blockers()}"
-                    th:text="${#strings.contains(b, ': ') ? #strings.substringBefore(b, ': ') + '. Record them on the Today screen.' : b}">Record the missing days first.</li>
+                    th:text="${#strings.contains(b, 'not recorded') ? 'Some days are not recorded yet. Open the calendar to see which, then record them on the Today screen.' : b}">Record the missing days first.</li>
             </ul>
             <ul class="plain" th:if="${!r.earnings().warnings().isEmpty()}">
                 <li th:each="w : ${r.earnings().warnings()}" th:text="${w}">note</li>
