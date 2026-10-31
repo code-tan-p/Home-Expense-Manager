@@ -1,5 +1,7 @@
 # Release checklist: Home Expense Manager
 
+The step-by-step list to finish is in [FINISH_CHECKLIST.md](FINISH_CHECKLIST.md).
+
 This file is the single source of truth for "is the deployment successful". Every piece of work updates the
 status here. Last updated: 2026-10-30 (commit 21adb96 plus this file).
 
