@@ -20,8 +20,7 @@ it works out what each person has earned in the month, exactly to the paisa.
 
 ## Known limits (version 1)
 
-- One household, one shared password (optional), no separate users or roles. Without a password the
-  server only accepts connections from this computer. A form post that came from another website is
+- One login per household: no separate roles for family members. A form post that came from another website is
   always refused (`SameOriginFilter`).
 - Closing a month leaves any unpaid amount as "still to pay" (it is not carried to the next month),
   and turns any overpayment into an advance. Reopening a closed month, corrections to payments and
@@ -169,14 +168,34 @@ Anyone can **sign up** with a name, email and password. Each person gets a house
 database file (`<data folder>/households/<id>.db`), so one household can never see another's records. Sign-in
 details live separately in `<data folder>/accounts.db`.
 
-- **Recovery:** sign-up shows a one-time recovery code. **Forgot password** needs the email and that code and then
-  gives a new code. There is no email service, so a person who loses both must be reset by whoever runs the server.
+- **Passwords:** at least 9 characters with an uppercase letter, a lowercase letter, a digit and a special character.
+  The sign-up page shows a strength bar, a show-password button, a live "passwords match" message and can suggest one.
+- **Forgot password:** the person types their email and is sent a link that works once for 30 minutes. There is no
+  change-password form: the same Forgot password link is the only way to choose a new password. This needs the server's
+  mail settings (below); until they are set the page says reset by email is not set up yet.
 - **Safety:** forms carry a one-time token, five wrong sign-ins lock that email and that address for ten minutes,
   sign-ups are limited to five per address per hour and `HOME_EXPENSE_MAX_HOUSEHOLDS` in total (default 500).
-- **Delete my account** on the Account page removes the household's file and backups.
+- **Delete my account** on the Account page asks for the word DELETE and the password, then removes the household's file and backups.
 - **Records made with the older one-household version** are kept: the first person to sign up takes them over.
 - Behind HTTPS, set `HOME_EXPENSE_SECURE_COOKIE=true`.
-- Email is not verified and is not used to send anything.
+- Email is not verified when someone signs up. It is used only for the password reset link.
+
+## Email for password reset
+
+Set these as environment variables on the server (never in the code):
+`SPRING_MAIL_HOST`, `SPRING_MAIL_PORT`, `SPRING_MAIL_USERNAME`, `SPRING_MAIL_PASSWORD`,
+`SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH=true`, `SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE=true`,
+`HOME_EXPENSE_MAIL_FROM` (the sender address) and `HOME_EXPENSE_BASE_URL` (the public address of the site, for example
+`https://pay.example.com`, used to build the link in the email). For Gmail use an app password.
+
+## How different workers are handled
+
+- **Monthly salary:** choose the weekdays they work. Days with no entry are "not recorded" and must be recorded or
+  confirmed as not worked (Monthly Pay, "Review and fix before closing") before the month can be closed.
+- **Milkman:** every day. Enter the litres each day; pay is litres times the price per litre.
+- **Per day, per hour, per task:** listed every day. Mark only the days they came. An unmarked day simply means they did not
+  work, so there is nothing to catch up and nothing nags.
+- **A holiday or leave for one worker only** is added on the worker's profile page.
 
 ## Settings
 

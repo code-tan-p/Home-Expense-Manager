@@ -30,7 +30,7 @@ Status words: **DONE** (screen and test exist), **BACKEND** (service exists, no 
 | Effective-dated rate changes | DONE | `/staff/{id}/pay` |
 | Weekly schedule per worker, weekly offs | DONE | `/staff/{id}/days` |
 | Employment history, rate history view | DONE | worker profile page |
-| Worker-specific holidays | MISSING | needs migration |
+| Worker-specific holidays | DONE | profile page form, saved day by day (`WorkerProfileTest`) |
 | Notes | DONE | worker profile; documents and emergency contact LATER |
 
 ### 2. Daily attendance (P0)
@@ -55,7 +55,7 @@ Status words: **DONE** (screen and test exist), **BACKEND** (service exists, no 
 | Finalize and lock | DONE | `/pay/close`, `FinalizedEarningsGuard` |
 | Line-by-line breakdown screen | DONE | "How this was worked out" on Monthly Pay and the salary slip |
 | Reopen with audit | DONE | `/settlement/{id}` (reopens the settlement and its earnings together) |
-| Review lines, confirm unrecorded | BACKEND | `EarningsService.reviewLine/confirmUnrecorded` |
+| Review lines, confirm unrecorded | DONE | `/pay/review/{id}` (`ReviewScreenTest`) |
 | Bonuses and deductions | DONE | "Bonus, deduction or correction" on `/settlement/{id}` (`SettlementScreenTest`) |
 | Overtime, custom components | LATER | |
 
@@ -68,7 +68,7 @@ Status words: **DONE** (screen and test exist), **BACKEND** (service exists, no 
 | Advance recovery history | DONE | advances table on `/settlement/{id}` and `/reports` |
 | Payment reversal / correction | DONE | `/pay/history/{id}`, `PaymentHistoryTest` |
 | Settlement history, reopen | DONE | `/settlement/{id}`, `SettlementScreenTest` |
-| Carry-forward | PARTIAL | shown on the month-end screen; changing the carry target has no form (LATER) |
+| Carry-forward | DONE | shown on the month-end screen, with a form to move it to a later month |
 | Printable salary slip | DONE | `/reports/slip/{id}` (print or save as PDF); receipts LATER |
 
 ### 5. Household expenses (P1)
@@ -76,7 +76,7 @@ Status words: **DONE** (screen and test exist), **BACKEND** (service exists, no 
 | --- | --- |
 | Daily expenses, categories, custom categories, method, date, notes | WON'T | Removed on 31 Oct 2026: owner says the app is for worker pay only. Empty tables from V10 stay in the database |
 | Recurring, monthly summary, filter, audited edits | WON'T | same decision |
-| Budgets, trends, split, bills, receipt images | LATER |
+| Budgets, trends, split, bills, receipt images | WON'T | Expenses module removed |
 
 ### 6. Dashboard (P1)
 | Item | Status |
@@ -132,12 +132,12 @@ Tick each with its proof (test name or manual check).
 - [x] All pay models calculate correctly. (`Earnings*IntegrationTest`, milk litres x price in `HomeControllerTest`)
 - [x] Rate changes apply only from their effective date. (`EarningsLifecycleIntegrationTest`)
 - [x] Missing attendance cannot silently become zero earnings. (blockers and warnings on Monthly Pay; `EarningsGuardIntegrationTest`)
-- [x] Additional work is accounted for. (`EarningsExtraWorkIntegrationTest`; the entry form is still LATER)
+- [x] Additional work is accounted for. (`EarningsExtraWorkIntegrationTest`; the "Add extra or missed work" form is built)
 
 **2. Financial correctness**
 - [x] All money is exact to the paisa. (`MoneyTest`, `FractionTest`)
 - [x] Multiple partial payments reconcile. (`PaymentReplacementIntegrationTest`, `SettlementFlowIntegrationTest`)
-- [x] Advances are recovered by the defined rules. (`SettlementFlowIntegrationTest`; the recovery history screen is still LATER)
+- [x] Advances are recovered by the defined rules. (`SettlementFlowIntegrationTest`; the advances table is on the month-end screen)
 - [x] Overpayments and unpaid balances are handled. (`SettlementFlowIntegrationTest`)
 - [x] Every settlement has an explainable breakdown (screen). ("How this was worked out", salary slip)
 - [x] Corrections keep the original history (screen). (`PaymentHistoryTest`, `AttendanceHistoryTest`, `ExpenseTest`)
@@ -202,6 +202,7 @@ bottom tab bar, litre chips, bigger Still-to-pay (P1b); Hindi (LATER).
 | 2026-10-30 | P1b: worker calendar on profile, litre buttons, email reset, proxy setting | 397 tests green |
 | 2026-10-30 | Remaining list: month-end screen, advances, bonus/deduction form, attendance %, missing days, extra-work form, advances report, backup history, spending on overview, staff search, dark mode | 400 tests green |
 | 2026-10-31 | Owner review round: expenses removed, strong passwords, email reset link, weekdays for monthly only, DELETE confirmation, header Sign out, buttons | 399 tests green; manual tests M1 to M8 open |
+| 2026-10-31 | Fixes G1 to G10 built; Part 2 screens built (review before closing, carry form, worker holidays); README updated | 402 tests green; browser re-run pending |
 | 2026-10-31 | Browser test run by an agent (owner watching): 11 of 16 checks passed; fixes G1 to G11 listed in section G | not yet fixed |
 | 2026-10-30 | Final check: real jar smoke test of 22 pages (all 200, no error text); Docker image built, healthy, non-root, account survived a container restart | passed |
 
@@ -276,16 +277,16 @@ Original list, kept for reference:
 | M8 Docker restart keeps the account | NOT RUN: Docker Desktop was off; run again when it is on |
 
 **Fixes to do** (tick when built and tested)
-- [ ] G1. Per-day, hourly and per-task workers must not nag: no "1 expected activity is not recorded yet" and no "Absent (did not tell)" button on Today for them; they must not count in "still to record" (header, Overview "Still to record today"); no "not recorded" wording on Monthly Pay; Overview "Needs attention" must stop listing every unmarked day as one long line (show a short summary with a link instead).
-- [ ] G2. Dark mode: the name and Sign out buttons in the header are almost invisible (dark text on a dark header). Make them readable.
-- [ ] G3. Turn the remaining text links into buttons: Overview "Record now" and "Open Monthly Pay"; Staff "Profile and history" and "Calendar"; Pay "See calendar", "Payments and corrections", "Month-end, advances and corrections"; Reports Earlier / Later, worker names and "Salary slip" links; check every other page again.
-- [ ] G4. Phone layout: the menu item "Monthly Pay" is cut to "Mo..."; the Reports salary table is cut off on the right; the placeholder "Reference (optional)" is cut off; calendar cells show "Came 3" instead of the full amount.
-- [ ] G5. After the server refuses a weak password, keep the name and email the person typed (do not wipe the form).
-- [ ] G6. Show our own plain message for a password that is too short, not only the browser's bubble.
-- [ ] G7. After sign-up, land on Overview (today it lands on Today with a welcome banner; decide which the owner prefers).
-- [ ] G8. Overview "Still to record today" counts a monthly worker on a day she is scheduled to work correctly, but also counts per-day workers; fix together with G1.
-- [ ] G9. Monthly Pay wording: "Came 1 days" must read "1 day"; the "26 not recorded" and "27 scheduled activities are not recorded" lines for the same worker must agree.
-- [ ] G10. "How this was worked out": remove "(standard rate #2)" and show dates as "5 Oct" instead of 2026-10-05.
+- [~] G1. Per-day, hourly and per-task workers must not nag: no "1 expected activity is not recorded yet" and no "Absent (did not tell)" button on Today for them; they must not count in "still to record" (header, Overview "Still to record today"); no "not recorded" wording on Monthly Pay; Overview "Needs attention" must stop listing every unmarked day as one long line (show a short summary with a link instead).
+- [~] G2. Dark mode: the name and Sign out buttons in the header are almost invisible (dark text on a dark header). Make them readable.
+- [~] G3. Turn the remaining text links into buttons: Overview "Record now" and "Open Monthly Pay"; Staff "Profile and history" and "Calendar"; Pay "See calendar", "Payments and corrections", "Month-end, advances and corrections"; Reports Earlier / Later, worker names and "Salary slip" links; check every other page again.
+- [~] G4. Phone layout: the menu item "Monthly Pay" is cut to "Mo..."; the Reports salary table is cut off on the right; the placeholder "Reference (optional)" is cut off; calendar cells show "Came 3" instead of the full amount.
+- [~] G5. After the server refuses a weak password, keep the name and email the person typed (do not wipe the form).
+- [~] G6. Show our own plain message for a password that is too short, not only the browser's bubble.
+- [~] G7. After sign-up, land on Overview (today it lands on Today with a welcome banner; decide which the owner prefers).
+- [~] G8. Overview "Still to record today" counts a monthly worker on a day she is scheduled to work correctly, but also counts per-day workers; fix together with G1.
+- [~] G9. Monthly Pay wording: "Came 1 days" must read "1 day"; the "26 not recorded" and "27 scheduled activities are not recorded" lines for the same worker must agree.
+- [~] G10. "How this was worked out": remove "(standard rate #2)" and show dates as "5 Oct" instead of 2026-10-05.
 - [ ] G11. Re-run this whole browser test after the fixes; then M2 (needs mail settings) and M8 (needs Docker Desktop on).
 
 ## H. Fix plan for section G (how each fix will be done)
