@@ -26,7 +26,26 @@
                     <div class="meta" th:text="${r.worker().workerType.name}">Maid</div>
                 </div>
             </div>
-                    </div>
+        </div>
+
+        <div th:if="${r.summary().hasPeriod()}">
+            <p class="meta">
+                <strong>Pay counted from</strong>
+                <span th:text="${#temporals.format(r.summary().from(), 'd MMM')}">1 Oct</span>
+                to <span th:text="${#temporals.format(r.summary().to(), 'd MMM yyyy')}">30 Oct 2026</span>
+                <span th:if="${r.summary().soFar()}">(so far this month)</span>
+            </p>
+            <p class="meta">
+                Came <strong th:text="${r.summary().came()}">0</strong> <span th:text="${r.summary().came() == 1 ? 'day' : 'days'}">days</span>
+                <span th:if="${r.summary().leave() > 0}"> · <span th:text="${r.summary().leave()}">0</span> on leave</span>
+                <span th:if="${r.summary().holiday() > 0}"> · <span th:text="${r.summary().holiday()}">0</span> holiday</span>
+                <span th:if="${r.summary().noDelivery() > 0}"> · <span th:text="${r.summary().noDelivery()}">0</span> no delivery</span>
+                <span th:if="${r.summary().absent() > 0}"> · <span th:text="${r.summary().absent()}">0</span> didn't come</span>
+                <span th:if="${r.summary().dayOff() > 0}"> · <span th:text="${r.summary().dayOff()}">0</span> <span th:text="${r.summary().dayOff() == 1 ? 'day' : 'days'}">days</span> off</span>
+                <span th:if="${r.summary().notRecorded() > 0}"> · <span th:text="${r.summary().notRecorded()}">0</span> not recorded</span>
+                · <a class="btn tiny" th:href="@{/calendar(workerId=${r.worker().id}, month=${month})}">See calendar</a>
+            </p>
+        </div>
 
         <p class="meta" th:if="${r.problem() != null}">
             We could not work out this month's pay for this person. Check their pay on the Staff page.
@@ -37,23 +56,42 @@
                 Earned <strong th:text="${T(com.homeexpense.money.Money).format(r.earnings().totalPaise())}">₹0.00</strong> ·
                 Paid so far <strong th:text="${T(com.homeexpense.money.Money).format(r.paidPaise())}">₹0.00</strong> ·
                 <span th:if="${r.stillToPayPaise() >= 0}">Still to pay
-                    <strong th:text="${T(com.homeexpense.money.Money).format(r.stillToPayPaise())}">₹0.00</strong></span>
+                    <strong class="total" th:text="${T(com.homeexpense.money.Money).format(r.stillToPayPaise())}">₹0.00</strong></span>
                 <span th:if="${r.stillToPayPaise() < 0}">Paid
                     <strong th:text="${T(com.homeexpense.money.Money).format(-r.stillToPayPaise())}">₹0.00</strong> in advance</span>
             </p>
+            <p class="meta" th:if="${r.litresMilli() != null}">
+                Milk delivered:
+                <strong th:text="${r.summary().litres} + ' litres'">0 litres</strong>
+                on <span th:text="${r.deliveryDays()}">0</span> <span th:text="${r.deliveryDays() == 1 ? 'delivery day' : 'delivery days'}">delivery days</span>. Pay is the litres times the price per litre.
+            </p>
+            <details class="activity" th:if="${!r.earnings().lines().isEmpty()}">
+                <summary>How this was worked out</summary>
+                <table class="breakdown">
+                    <tr th:each="line : ${r.earnings().lines()}">
+                        <td th:text="${line.date() != null} ? ${#temporals.format(line.date(), 'd MMM')} : ''">1 Jan</td>
+                        <td th:text="${line.text()}">Explanation</td>
+                        <td class="num" th:text="${line.amountPaise() != null} ? ${T(com.homeexpense.money.Money).format(line.amountPaise())} : 'needs a decision'">₹0.00</td>
+                    </tr>
+                </table>
+                <p class="meta">Total <strong th:text="${T(com.homeexpense.money.Money).format(r.earnings().totalPaise())}">₹0.00</strong></p>
+            </details>
             <p class="meta" th:if="${r.earnings().finalized()}"><span class="badge done">Month closed</span></p>
             <form th:if="${ended and !r.earnings().finalized() and r.earnings().blockers().isEmpty()}"
-                  th:action="@{/pay/close}" method="post" class="actions"
-                  onsubmit="return confirm('Close this month for this person? Their days for the month can no longer be changed.')">
+                  th:action="@{/pay/close}" method="post" class="actions">
                 <input type="hidden" name="workerId" th:value="${r.worker().id}">
                 <input type="hidden" name="month" th:value="${month}">
+                <label class="meta"><input type="checkbox" required style="width:auto">
+                    Yes, close it. Their days for this month can no longer be changed.</label>
                 <button class="btn" type="submit">Close this month</button>
             </form>
             <p class="meta" th:if="${!r.earnings().blockers().isEmpty()}"><strong>Before you pay:</strong></p>
             <ul class="plain" th:if="${!r.earnings().blockers().isEmpty()}">
                 <li th:each="b : ${r.earnings().blockers()}"
-                    th:text="${#strings.contains(b, ': ') ? #strings.substringBefore(b, ': ') + '. Record them on the Today screen.' : b}">Record the missing days first.</li>
+                    th:text="${#strings.contains(b, 'not recorded') ? 'Some days are not recorded yet. Open the calendar to see which, then record them on the Today screen.' : b}">Record the missing days first.</li>
             </ul>
+            <p th:if="${!r.earnings().blockers().isEmpty() and ended and !r.earnings().finalized()}">
+                <a class="btn" th:href="@{/pay/review/{id}(id=${r.worker().id}, month=${month})}">Review and fix before closing</a></p>
             <ul class="plain" th:if="${!r.earnings().warnings().isEmpty()}">
                 <li th:each="w : ${r.earnings().warnings()}" th:text="${w}">note</li>
             </ul>
@@ -64,10 +102,13 @@
                 <input class="small" type="text" name="amount" inputmode="decimal" placeholder="Amount paid (₹)" required aria-label="Amount paid">
                 <select name="method" aria-label="How was it paid" style="width:auto">
                     <option th:each="m : ${methods}" th:value="${m.name()}"
-                            th:text="${m.name() == 'UPI' ? 'UPI' : (m.name() == 'CASH' ? 'Cash' : 'Bank transfer')}">Cash</option>
+                            th:text="${m.name() == 'UPI' ? 'UPI' : (m.name() == 'CASH' ? 'Cash' : (m.name() == 'OTHER' ? 'Other' : 'Bank transfer'))}">Cash</option>
                 </select>
+                <input class="small" type="text" name="reference" maxlength="60" placeholder="Reference" aria-label="Payment reference, optional">
                 <button class="btn primary" type="submit">Record payment</button>
             </form>
+            <p class="actions"><a class="btn tiny" th:href="@{/pay/history/{id}(id=${r.worker().id})}">Payments and corrections</a>
+                <a class="btn tiny" th:href="@{/settlement/{id}(id=${r.worker().id}, month=${month})}">Month-end, advances and corrections</a></p>
             <p class="meta" th:if="${r.advancePaise() > 0}">
                 Advance to take back from later pay:
                 <strong th:text="${T(com.homeexpense.money.Money).format(r.advancePaise())}">₹0.00</strong>
@@ -81,7 +122,7 @@
                     <input class="small" type="text" name="amount" inputmode="decimal" placeholder="Advance (₹)" required aria-label="Advance amount">
                     <select name="method" aria-label="How was it paid" style="width:auto">
                         <option th:each="m : ${methods}" th:value="${m.name()}"
-                                th:text="${m.name() == 'UPI' ? 'UPI' : (m.name() == 'CASH' ? 'Cash' : 'Bank transfer')}">Cash</option>
+                                th:text="${m.name() == 'UPI' ? 'UPI' : (m.name() == 'CASH' ? 'Cash' : (m.name() == 'OTHER' ? 'Other' : 'Bank transfer'))}">Cash</option>
                     </select>
                     <button class="btn" type="submit">Give advance</button>
                 </form>

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Choose a new password')}"></head>
+<body>
+<header th:replace="~{fragments :: header('forgot')}"></header>
+<main>
+    <section class="card" style="max-width:26rem;margin:2rem auto">
+        <h1>Choose a new password</h1>
+        <div th:replace="~{fragments :: messages}"></div>
+        <div th:unless="${valid}">
+            <p>This link is not valid any more. It may have been used already, or it is older than 30 minutes.</p>
+            <a class="btn primary" th:href="@{/forgot}">Ask for a new link</a>
+        </div>
+        <form th:if="${valid}" th:action="@{/reset}" method="post">
+            <input type="hidden" name="token" th:value="${token}">
+            <div class="form-grid" style="grid-template-columns:1fr">
+                <div><label for="password">New password</label>
+                    <input id="password" type="password" name="password" autocomplete="new-password" required autofocus
+                           data-new data-partner="confirm"></div>
+                <div><label for="confirm">Type it again</label>
+                    <input id="confirm" type="password" name="confirm" autocomplete="new-password" required
+                           data-confirm="password"></div>
+            </div>
+            <p><button class="btn" type="button" data-suggest="password">Suggest a strong password</button></p>
+            <p class="meta" id="pw-suggest-note" role="status"></p>
+            <button class="btn primary" type="submit">Save new password</button>
+        </form>
+    </section>
+</main>
+<script th:src="@{/js/password.js}"></script>
+</body>
+</html>

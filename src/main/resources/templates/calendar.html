@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Calendar')}"></head>
+<body>
+<header th:replace="~{fragments :: header('calendar')}"></header>
+<main>
+    <h1>Calendar</h1>
+    <p class="sub">Who came, who was off, and why. Tap a day to change it on the Today screen.</p>
+
+    <div class="card empty" th:if="${#lists.isEmpty(workers)}">
+        <p>Add a worker first.</p>
+        <a class="btn primary" th:href="@{/staff}">Add a worker</a>
+    </div>
+
+    <div th:if="${!#lists.isEmpty(workers)}">
+        <div class="chips" role="tablist" aria-label="Choose a person">
+            <a th:each="w : ${workers}" class="chip" th:classappend="${w.id == worker.id} ? 'active'"
+               th:href="@{/calendar(workerId=${w.id}, month=${month})}" th:text="${w.name}">Name</a>
+        </div>
+
+        <div class="toolbar">
+            <a class="btn" th:href="@{/calendar(workerId=${worker.id}, month=${previous})}" aria-label="Previous month">&larr;</a>
+            <span class="date" th:text="${#temporals.format(month, 'MMMM yyyy')}">October 2026</span>
+            <a class="btn" th:href="@{/calendar(workerId=${worker.id}, month=${next})}" aria-label="Next month">&rarr;</a>
+        </div>
+
+        <section class="card">
+            <th:block th:replace="~{calendar-fragment :: grid(${cal}, ${worker}, ${month})}"></th:block>
+        </section>
+
+        <section class="card">
+            <h2>This month for <span th:text="${worker.name}">Name</span></h2>
+            <p class="meta" th:if="${cal.summary.hasPeriod()}">
+                From <strong th:text="${#temporals.format(cal.summary.from, 'd MMM')}">1 Oct</strong>
+                to <strong th:text="${#temporals.format(cal.summary.to, 'd MMM yyyy')}">30 Oct 2026</strong>
+                <span th:if="${cal.summary.soFar}">(so far)</span>
+            </p>
+            <ul class="stats">
+                <li><strong th:text="${cal.summary.came}">0</strong> days came
+                    <span th:if="${cal.summary.attendancePercent != null}" th:text="'(' + ${cal.summary.attendancePercent} + '% attendance)'"></span></li>
+                <li th:if="${cal.summary.leave > 0}"><strong th:text="${cal.summary.leave}">0</strong> on leave</li>
+                <li th:if="${cal.summary.holiday > 0}"><strong th:text="${cal.summary.holiday}">0</strong> holiday</li>
+                <li th:if="${cal.summary.noDelivery > 0}"><strong th:text="${cal.summary.noDelivery}">0</strong> no delivery</li>
+                <li th:if="${cal.summary.absent > 0}"><strong th:text="${cal.summary.absent}">0</strong> didn't come</li>
+                <li th:if="${cal.summary.dayOff > 0}"><strong th:text="${cal.summary.dayOff}">0</strong> days off</li>
+                <li th:if="${cal.summary.notRecorded > 0}"><strong th:text="${cal.summary.notRecorded}">0</strong> not recorded yet</li>
+            </ul>
+            <p th:if="${cal.milk}" class="total-line">
+                Milk delivered: <strong th:text="${cal.summary.litres} + ' litres'">0 litres</strong>
+                on <span th:text="${cal.summary.deliveryDays}">0</span> days
+            </p>
+            <p th:if="${cal.hourly}" class="total-line">
+                Hours worked: <strong th:text="${cal.summary.hours} + ' hours'">0 hours</strong>
+            </p>
+            <p><a class="btn" th:href="@{/pay(month=${month})}">See the pay for this month</a>
+                <a class="btn" th:href="@{/attendance/{id}(id=${worker.id}, month=${month})}">Records and corrections</a></p>
+        </section>
+    </div>
+</main>
+</body>
+</html>

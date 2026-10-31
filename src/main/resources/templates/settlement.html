@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Settlement')}"></head>
+<body>
+<header th:replace="~{fragments :: header('pay')}"></header>
+<main>
+    <h1>Month-end for <span th:text="${worker.name}">Name</span></h1>
+    <p class="sub">How the amount to pay was put together, what has been paid, and every earlier version.</p>
+    <p class="noprint actions">
+        <a class="btn tiny" th:href="@{/pay(month=${month})}">&larr; Monthly Pay</a>
+        <a class="btn tiny" th:href="@{/settlement/{id}(id=${worker.id}, month=${previous})}">Earlier month</a>
+        <strong th:text="${#temporals.format(month, 'MMMM yyyy')}">October 2026</strong> ·
+        <a class="btn tiny" th:href="@{/settlement/{id}(id=${worker.id}, month=${next})}">Later month</a>
+        <a class="btn tiny" th:href="@{/pay/history/{id}(id=${worker.id})}">Payments</a>
+    </p>
+
+    <div th:replace="~{fragments :: messages}"></div>
+
+    <section class="card empty" th:if="${view == null and history.isEmpty()}">
+        <p>This month has not been closed yet, so there is no month-end picture. Close it from Monthly Pay when all days are recorded.</p>
+    </section>
+
+    <section class="card" th:if="${view != null}">
+        <h2>
+            <span th:text="${#temporals.format(month, 'MMMM yyyy')}">October 2026</span>
+            <span class="badge done" th:if="${settled}">Settled</span>
+            <span class="badge wait" th:unless="${settled}">Open</span>
+        </h2>
+        <table class="breakdown">
+            <tr th:each="i : ${view.items()}">
+                <td th:text="${i.explanation}">Explanation</td>
+                <td class="num" th:text="${T(com.homeexpense.money.Money).format(i.amountPaise)}">₹0.00</td>
+            </tr>
+            <tr><td><strong>Amount to pay</strong></td>
+                <td class="num" th:text="${T(com.homeexpense.money.Money).format(view.version().netPayablePaise)}">₹0.00</td></tr>
+            <tr><td>Paid towards this month</td>
+                <td class="num" th:text="${T(com.homeexpense.money.Money).format(view.allocatedPaise())}">₹0.00</td></tr>
+            <tr th:if="${view.carriedOutPaise() != 0}"><td>Carried to a later month</td>
+                <td class="num" th:text="${T(com.homeexpense.money.Money).format(view.carriedOutPaise())}">₹0.00</td></tr>
+            <tr><td><strong>Still to pay</strong></td>
+                <td class="num" th:text="${T(com.homeexpense.money.Money).format(view.outstandingPaise())}">₹0.00</td></tr>
+            <tr th:if="${view.unallocatedCreditPaise() > 0}"><td>Paid but not yet placed against a month</td>
+                <td class="num" th:text="${T(com.homeexpense.money.Money).format(view.unallocatedCreditPaise())}">₹0.00</td></tr>
+        </table>
+        <ul th:if="${!view.warnings().isEmpty()}">
+            <li class="meta" th:each="w : ${view.warnings()}" th:text="${w}">warning</li>
+        </ul>
+    </section>
+
+    <section class="card" th:if="${settled}">
+        <h2>Reopen this month</h2>
+        <p class="meta">Use this if the days or pay were wrong. The settled version stays in the history below.</p>
+        <form th:action="@{/settlement/{id}/reopen(id=${worker.id})}" method="post" class="actions">
+            <input type="hidden" name="month" th:value="${month}">
+            <input class="small" type="text" name="reason" maxlength="200" required placeholder="Why reopen?" aria-label="Reason">
+            <label class="meta"><input type="checkbox" name="sure" value="yes" required style="width:auto"> Yes, reopen it</label>
+            <button class="btn caution" type="submit">Reopen</button>
+        </form>
+    </section>
+
+    <section class="card" th:if="${!settled}">
+        <h2>Bonus, deduction or correction</h2>
+        <p class="meta">A bonus, a deduction or a fix for this month. It shows in the list above with your reason.</p>
+        <form th:action="@{/settlement/{id}/correction(id=${worker.id})}" method="post" class="actions">
+            <input type="hidden" name="month" th:value="${month}">
+            <select name="direction" aria-label="Add or take off" style="width:auto">
+                <option value="ADD">Add to pay (bonus, extra)</option>
+                <option value="TAKE">Take off pay (deduction)</option>
+            </select>
+            <input class="small" type="text" name="amount" inputmode="decimal" required placeholder="Amount (₹)" aria-label="Amount">
+            <label class="meta"><input type="checkbox" name="owed" value="yes" style="width:auto"> money they owe me (for example paid by mistake)</label>
+            <input class="small" type="text" name="reason" maxlength="200" required placeholder="Reason" aria-label="Reason">
+            <button class="btn" type="submit">Add correction</button>
+        </form>
+    </section>
+
+    <section class="card" th:if="${view != null and !settled and view.carriedOutPaise() == 0 and view.outstandingPaise() < 0}">
+        <h2>Move an amount carried from an earlier month</h2>
+        <p class="meta">If part of this month's balance only exists because an earlier month was carried forward, you can move it to a later month.</p>
+        <form th:action="@{/settlement/{id}/carry(id=${worker.id})}" method="post" class="actions">
+            <input type="hidden" name="month" th:value="${month}">
+            <input class="small" type="month" name="laterMonth" required aria-label="Later month">
+            <input class="small" type="text" name="reason" maxlength="200" required placeholder="Reason" aria-label="Reason">
+            <button class="btn" type="submit">Move it</button>
+        </form>
+    </section>
+
+    <section class="card" th:if="${!history.isEmpty()}">
+        <h2>Earlier versions</h2>
+        <ul>
+            <li th:each="v : ${history}">
+                Version <strong th:text="${v.versionNo}">1</strong>:
+                <span th:text="${T(com.homeexpense.money.Money).format(v.netPayablePaise)}">₹0.00</span>
+                <span class="badge done" th:if="${v.status.name() == 'SETTLED' and v.supersededAt == null}">Settled</span>
+                <span class="badge off" th:if="${v.supersededAt != null}">Replaced</span>
+                <span class="meta" th:if="${v.supersededReason != null}" th:text="'· ' + ${v.supersededReason}"></span>
+            </li>
+        </ul>
+    </section>
+
+    <section class="card" th:if="${!advances.isEmpty()}">
+        <h2>Advances</h2>
+        <table class="breakdown">
+            <tr><th>Given</th><th>Amount</th><th>Taken back</th><th>Still to take back</th></tr>
+            <tr th:each="a : ${advances}">
+                <td th:text="${#temporals.format(a.advance().givenOn, 'd MMM yyyy')}">1 Oct 2026</td>
+                <td class="num" th:text="${T(com.homeexpense.money.Money).format(a.advance().amountPaise)}">₹0.00</td>
+                <td class="num" th:text="${T(com.homeexpense.money.Money).format(a.recoveredPaise())}">₹0.00</td>
+                <td class="num" th:text="${T(com.homeexpense.money.Money).format(a.balancePaise())}">₹0.00</td>
+            </tr>
+        </table>
+        <p class="meta">An advance is taken back automatically from the next month that is closed.</p>
+    </section>
+</main>
+</body>
+</html>

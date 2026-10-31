@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Sign in')}"></head>
+<body>
+<header th:replace="~{fragments :: header('login')}"></header>
+<main>
+    <section class="card" style="max-width:26rem;margin:2rem auto">
+        <h1>Sign in</h1>
+        <p class="sub">Use the email and password you signed up with.</p>
+        <div class="flash error" th:if="${param.error}" role="alert">That email or password is not right. Please try again.</div>
+        <div class="flash error" th:if="${param.locked}" role="alert">Too many wrong tries. Please wait 10 minutes and try again.</div>
+        <div class="flash ok" th:if="${param.bye}" role="status">You are signed out.</div>
+        <div class="flash ok" th:if="${param.deleted}" role="status">Your account and records were deleted.</div>
+        <form th:action="@{/login}" method="post">
+            <label for="username">Email</label>
+            <input id="username" type="email" name="username" autocomplete="username" autofocus required>
+            <label for="password" style="margin-top:.75rem">Password</label>
+            <input id="password" type="password" name="password" autocomplete="current-password" required
+                   style="margin-bottom:1rem">
+            <button class="btn primary" type="submit">Sign in</button>
+        </form>
+        <p class="meta" style="margin-top:1rem">
+            <a class="btn" th:href="@{/signup}">Create your free account</a>
+            <a class="btn" th:href="@{/forgot}">Forgot password</a></p>
+    </section>
+</main>
+<script th:src="@{/js/password.js}"></script>
+</body>
+</html>

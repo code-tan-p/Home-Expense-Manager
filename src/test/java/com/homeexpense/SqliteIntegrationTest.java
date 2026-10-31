@@ -27,6 +27,7 @@ public abstract class SqliteIntegrationTest {
     @DynamicPropertySource
     static void sqliteProperties(DynamicPropertyRegistry registry) {
         registry.add("home-expense.data-dir", DATA_DIR::toString);
+        registry.add("home-expense.fixed-household", () -> "1");
     }
 
     private static Path createTempRoot() {

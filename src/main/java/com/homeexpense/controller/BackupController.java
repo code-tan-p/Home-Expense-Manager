@@ -1,91 +1,74 @@
 package com.homeexpense.controller;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.time.Clock;
-import java.time.LocalDate;
+import java.io.InputStream;
 
-import org.springframework.core.io.FileSystemResource;
+import com.homeexpense.exception.BusinessRuleException;
+import com.homeexpense.service.BackupService;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-/** The "Backup" screen: downloads one consistent copy of the whole database. */
+/** The "Backup" screen: download a copy of all records, or restore one. */
 @Controller
 public class BackupController {
 
-    private final JdbcTemplate jdbc;
-    private final Clock clock;
+    private final BackupService backupService;
 
-    private final Path dataDir;
-
-    public BackupController(JdbcTemplate jdbc, Clock clock,
-                            @org.springframework.beans.factory.annotation.Value("${home-expense.data-dir}") Path dataDir) {
-        this.jdbc = jdbc;
-        this.clock = clock;
-        this.dataDir = dataDir;
-    }
-
-    /**
-     * Receives a backup file and leaves it beside the live database. It is swapped in the next time
-     * the application starts, see {@code DataSourceConfig.applyPendingRestore}.
-     */
-    @org.springframework.web.bind.annotation.PostMapping("/backup/restore")
-    public String restore(@org.springframework.web.bind.annotation.RequestParam("file") org.springframework.web.multipart.MultipartFile file,
-                          org.springframework.web.servlet.mvc.support.RedirectAttributes flash) throws IOException {
-        byte[] header = new byte[16];
-        try (java.io.InputStream in = file.getInputStream()) {
-            int read = in.readNBytes(header, 0, header.length);
-            if (file.isEmpty() || read < 16 || !new String(header, 0, 15, java.nio.charset.StandardCharsets.US_ASCII).equals("SQLite format 3")) {
-                throw new com.homeexpense.exception.BusinessRuleException(
-                        "That file is not a Home Expense Manager backup. Choose the file you downloaded from this page.");
-            }
-        }
-        try (java.io.InputStream in = file.getInputStream()) {
-            Files.copy(in, dataDir.resolve("restore-pending.db"), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-        }
-        flash.addFlashAttribute("ok", "Backup received. Close the program and open it again to finish restoring. "
-                + "Your current records are kept as a safety copy.");
-        return "redirect:/backup";
+    public BackupController(BackupService backupService) {
+        this.backupService = backupService;
     }
 
     @GetMapping("/backup")
     public String backup(Model model) {
         model.addAttribute("page", "backup");
+        model.addAttribute("automatic", backupService.automaticBackups());
         return "backup";
     }
 
-    /** VACUUM INTO writes a complete copy that already includes the WAL, so one file is a full backup. */
-    @org.springframework.web.bind.annotation.PostMapping("/backup/download")
+    @PostMapping("/backup/download")
     public ResponseEntity<Resource> download() throws IOException {
-        Path folder = Files.createTempDirectory("home-expense-backup");
-        Path copy = folder.resolve("home-expense-" + LocalDate.now(clock) + ".db");
-        jdbc.execute("VACUUM INTO '" + copy.toString().replace("'", "''") + "'");
-        FileSystemResource resource = new FileSystemResource(copy) {
-            @Override
-            public java.io.InputStream getInputStream() throws IOException {
-                return new java.io.FilterInputStream(super.getInputStream()) {
-                    @Override
-                    public void close() throws IOException {
-                        super.close();
-                        Files.deleteIfExists(copy);
-                        Files.deleteIfExists(folder);
-                    }
-                };
-            }
-        };
+        byte[] copy = backupService.snapshot();
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                .contentLength(Files.size(copy))
+                .contentLength(copy.length)
                 .header(HttpHeaders.CONTENT_DISPOSITION,
-                        ContentDisposition.attachment().filename(copy.getFileName().toString()).build().toString())
-                .body(resource);
+                        ContentDisposition.attachment().filename(backupService.downloadName()).build().toString())
+                .body(new ByteArrayResource(copy));
+    }
+
+    /** One of the daily automatic backups, as a download. */
+    @GetMapping("/backup/automatic/{name}")
+    public ResponseEntity<Resource> automatic(@org.springframework.web.bind.annotation.PathVariable String name) throws IOException {
+        byte[] copy = backupService.automaticBackup(name);
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .contentLength(copy.length)
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment().filename(name).build().toString())
+                .body(new ByteArrayResource(copy));
+    }
+
+    /** Checks the file, then stages it. It is applied the next time the program starts. */
+    @PostMapping("/backup/restore")
+    public String restore(@RequestParam("file") MultipartFile file, RedirectAttributes flash) throws IOException {
+        if (file.isEmpty()) {
+            throw new BusinessRuleException("Choose the backup file first.");
+        }
+        try (InputStream in = file.getInputStream()) {
+            backupService.restore(in);
+        }
+        flash.addFlashAttribute("ok", "Backup restored. Your records are now the ones in that file. "
+                + "The records you had before are kept as a safety copy on the server.");
+        return "redirect:/backup";
     }
 }

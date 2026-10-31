@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Account')}"></head>
+<body>
+<header th:replace="~{fragments :: header('account')}"></header>
+<main>
+    <h1>Account</h1>
+    <p class="sub"><span th:text="${accountName}">Name</span> &middot; <span th:text="${accountEmail}">email</span></p>
+
+    <div th:replace="~{fragments :: messages}"></div>
+
+    <section class="card">
+        <h2>Your data</h2>
+        <p class="meta">Download a copy of all your records, or restore one, on the Backup page.</p>
+        <a class="btn" th:href="@{/backup}">Open Backup</a>
+    </section>
+
+    <section class="card">
+        <h2>Password</h2>
+        <p class="meta">To choose a new password, sign out and use Forgot password on the sign-in page. We will email you a link.</p>
+    </section>
+
+    <section class="card" th:if="${canDelete}">
+        <h2>Delete my account</h2>
+        <p class="meta">This removes your account and all your records for good, and it cannot be undone. Download a backup first if you may need them.
+            To confirm, type the word <strong>DELETE</strong> and your password.</p>
+        <form th:action="@{/account/delete}" method="post">
+            <div class="form-grid">
+                <div><label for="typed">Type DELETE</label>
+                    <input id="typed" type="text" name="typed" autocomplete="off" required placeholder="DELETE"></div>
+                <div><label for="password">Your password</label>
+                    <input id="password" type="password" name="password" autocomplete="current-password" required></div>
+            </div>
+            <button class="btn caution" type="submit">Delete account for good</button>
+        </form>
+    </section>
+</main>
+<script th:src="@{/js/password.js}"></script>
+</body>
+</html>

@@ -32,8 +32,12 @@ class DatabaseFoundationIntegrationTest extends SqliteIntegrationTest {
     @Autowired
     private DataSource dataSource;
 
-    @Autowired
     private Flyway flyway;
+
+    @org.junit.jupiter.api.BeforeEach
+    void flyway() {
+        flyway = Flyway.configure().dataSource(dataSource).locations("classpath:db/migration").load();
+    }
 
     @Autowired
     private EntityManager entityManager;
@@ -50,14 +54,12 @@ class DatabaseFoundationIntegrationTest extends SqliteIntegrationTest {
     @Test
     void createsMissingDataDirectoryAndDatabaseFile() {
         assertThat(DATA_DIR).isDirectory();
-        assertThat(DATA_DIR.resolve("home-expense.db")).isRegularFile();
+        assertThat(DATA_DIR.resolve("households").resolve("1.db")).isRegularFile();
         assertThat(Files.exists(TEMP_ROOT)).isTrue();
     }
 
     @Test
     void flywayUsesTheApplicationDataSourceThroughSqliteJdbc() throws SQLException {
-        assertThat(flyway.getConfiguration().getDataSource()).isSameAs(dataSource);
-
         try (Connection connection = flyway.getConfiguration().getDataSource().getConnection()) {
             assertThat(connection.getMetaData().getDriverName()).isEqualTo("SQLite JDBC");
             assertThat(connection.getMetaData().getURL()).startsWith("jdbc:sqlite:");

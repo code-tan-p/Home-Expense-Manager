@@ -330,7 +330,43 @@ public class EarningsService {
     }
 
     /** What a month would come to, worked out now and not saved. */
-    public record Preview(long totalPaise, List<String> blockers, List<String> warnings, boolean finalized) {
+    public record Preview(long totalPaise, List<String> blockers, List<String> warnings, boolean finalized, List<Line> lines) {
+    }
+
+    private static final java.util.regex.Pattern ISO_DATE = java.util.regex.Pattern.compile("(\\d{4})-(\\d{2})-(\\d{2})");
+
+    /**
+     * The same sentence without the technical bits a household does not need: rate numbers, the "one day line per
+     * date" note, and dates such as 2026-10-05 (shown as 5 Oct). What is saved in the database is not changed.
+     */
+    public static String plain(String text) {
+        if (text == null) {
+            return null;
+        }
+        String clean = text.replaceAll("\\s*\\((?:standard |specific )?rate #\\d+\\)", "")
+                .replaceAll("\\s*\\((?:one day line per date)\\)", "")
+                .replaceAll("\\s*\\(scheduled work done\\)", "")
+                .replace("day-units", "days");
+        java.util.regex.Matcher m = ISO_DATE.matcher(clean);
+        StringBuilder out = new StringBuilder();
+        while (m.find()) {
+            java.time.LocalDate date = java.time.LocalDate.of(Integer.parseInt(m.group(1)), Integer.parseInt(m.group(2)), Integer.parseInt(m.group(3)));
+            m.appendReplacement(out, date.getDayOfMonth() + " " + date.getMonth().getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.ENGLISH));
+        }
+        m.appendTail(out);
+        String text2 = out.toString().replace(" .", ".");
+        java.util.regex.Matcher month = java.util.regex.Pattern.compile("\\b(\\d{4})-(\\d{2})\\b").matcher(text2);
+        StringBuilder months = new StringBuilder();
+        while (month.find()) {
+            java.time.YearMonth ym = java.time.YearMonth.of(Integer.parseInt(month.group(1)), Integer.parseInt(month.group(2)));
+            month.appendReplacement(months, ym.getMonth().getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.ENGLISH) + " " + ym.getYear());
+        }
+        month.appendTail(months);
+        return months.toString();
+    }
+
+    /** One explained line of a month: the day it is for (may be empty), the explanation, and the amount (null while it needs review). */
+    public record Line(java.time.LocalDate date, String text, Long amountPaise) {
     }
 
     /**
@@ -344,7 +380,8 @@ public class EarningsService {
         EarningRun run = runRepository.findActive(workerId, month.atDay(1)).orElse(null);
         if (run != null && !run.isDraft()) {
             EarningsResult saved = result(run, List.of());
-            return new Preview(saved.totalPaise(), saved.blockers(), saved.warnings(), true);
+            return new Preview(saved.totalPaise(), saved.blockers(), saved.warnings(), true,
+                    saved.lines().stream().map(l -> new Line(l.getWorkDate(), plain(l.getExplanation()), l.getAmountPaise())).toList());
         }
         EarningsCalculator.Calculation calc = calculator.calculate(worker, month);
         long total = 0;
@@ -353,7 +390,8 @@ public class EarningsService {
                 total = Math.addExact(total, line.amountPaise);
             }
         }
-        return new Preview(total, calc.blockers(), calc.warnings(), false);
+        return new Preview(total, calc.blockers(), calc.warnings(), false,
+                calc.lines().stream().map(l -> new Line(l.date, plain(l.explanation), l.amountPaise)).toList());
     }
 
     // ------------------------------------------------------------------ helpers

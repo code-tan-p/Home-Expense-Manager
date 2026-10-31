@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Something went wrong')}"></head>
+<body>
+<header th:replace="~{fragments :: header('')}"></header>
+<main>
+    <section class="card empty">
+        <h1 th:switch="${status}">
+            <span th:case="404">We could not find that page</span>
+            <span th:case="405">That link cannot be opened directly</span>
+            <span th:case="*">Something did not work</span>
+        </h1>
+        <p th:if="${message != null and message != ''}" th:text="${message}">Please check what you typed.</p>
+        <p th:if="${message == null or message == ''}"
+           th:text="${status == 404 ? 'The address may be wrong, or it may have moved.' : (status == 405 ? 'Use the buttons inside the program instead.' : 'Please go back and try again. Your records are safe.')}">
+            Please go back and try again.
+        </p>
+        <p><a class="btn primary" th:href="@{/}">Go to Today</a></p>
+    </section>
+</main>
+</body>
+</html>

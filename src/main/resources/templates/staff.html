@@ -9,7 +9,10 @@
 
     <div th:replace="~{fragments :: messages}"></div>
 
-    <section class="card" th:each="r : ${rows}">
+    <p class="noprint" th:if="${rows.size() > 3}">
+        <input type="search" id="staffSearch" placeholder="Search staff by name" aria-label="Search staff by name" autocomplete="off">
+    </p>
+    <section class="card person-card" th:each="r : ${rows}" th:attr="data-name=${#strings.toLowerCase(r.worker().name)}">
         <div class="row">
             <div class="person">
                 <div class="avatar" th:text="${#strings.substring(r.worker().name, 0, 1)}">A</div>
@@ -29,8 +32,9 @@
                 </form>
             </div>
         </div>
+        <p class="actions"><a class="btn tiny" th:href="@{/staff/{id}/profile(id=${r.worker().id})}">Profile and history</a> <a class="btn tiny" th:href="@{/calendar(workerId=${r.worker().id})}">Calendar</a></p>
         <details class="activity" th:if="${r.active()}">
-            <summary>Change pay, weekdays or last day</summary>
+            <summary>Change pay or last day<span th:if="${r.monthly()}">, or weekdays</span></summary>
             <form class="actions" th:action="@{/staff/{id}/pay(id=${r.worker().id})}" method="post" style="margin-top:.75rem">
                 <span class="meta">New pay (₹):</span>
                 <input class="small" type="text" name="rate" inputmode="decimal" required aria-label="New pay amount">
@@ -38,7 +42,7 @@
                 <input class="small" type="date" name="from" th:value="${today}" required aria-label="Starting on">
                 <button class="btn" type="submit">Save pay</button>
             </form>
-            <form class="actions" th:action="@{/staff/{id}/days(id=${r.worker().id})}" method="post" style="margin-top:.75rem">
+            <form class="actions" th:if="${r.monthly()}" th:action="@{/staff/{id}/days(id=${r.worker().id})}" method="post" style="margin-top:.75rem">
                 <span class="meta">Works on:</span>
                 <span class="days">
                     <label th:each="d : ${days}">
@@ -50,10 +54,10 @@
                 <input class="small" type="date" name="from" th:value="${today}" required aria-label="Starting on">
                 <button class="btn" type="submit">Save weekdays</button>
             </form>
-            <form class="actions" th:action="@{/staff/{id}/stop(id=${r.worker().id})}" method="post" style="margin-top:.75rem"
-                  onsubmit="return confirm('Mark this person as no longer working here?')">
+            <form class="actions" th:action="@{/staff/{id}/stop(id=${r.worker().id})}" method="post" style="margin-top:.75rem">
                 <span class="meta">Last working day:</span>
                 <input class="small" type="date" name="last" th:value="${today}" required aria-label="Last working day">
+                <label class="meta"><input type="checkbox" required style="width:auto"> Yes, they have left</label>
                 <button class="btn caution" type="submit">No longer working</button>
             </form>
         </details>
@@ -80,18 +84,63 @@
                         <option th:each="c : ${choices}" th:value="${c.name()}" th:text="${c.label}">Monthly salary</option>
                     </select>
                 </div>
-                <div><label for="rate">Amount in ₹</label><input id="rate" type="text" name="rate" inputmode="decimal" placeholder="e.g. 5500" required></div>
+                <div><label for="rate" id="rateLabel">Salary per month (₹)</label><input id="rate" type="text" name="rate" inputmode="decimal" placeholder="e.g. 5500" required>
+                    <div class="meta" id="rateHint" style="margin-top:.25rem"></div></div>
             </div>
+            <div id="daysBlock">
             <label>Works on</label>
+            <p class="meta" style="margin:0 0 .5rem">Only for a monthly salary. A milkman and day-by-day workers need no weekdays.</p>
             <div class="days" style="margin-bottom:1.25rem">
                 <label th:each="d : ${days}">
                     <input type="checkbox" name="days" th:value="${d.name()}" th:checked="${d.value &lt;= 6}">
                     <span th:text="${#strings.substring(d.name(), 0, 3)}">MON</span>
                 </label>
             </div>
+            </div>
             <button class="btn primary" type="submit">Add worker</button>
         </form>
+        <script>
+            // The job picks the usual pay type, and the amount label always says what is being entered.
+            (function () {
+                var job = document.getElementById('typeId'), pay = document.getElementById('pay'),
+                    label = document.getElementById('rateLabel'), rate = document.getElementById('rate'),
+                    hint = document.getElementById('rateHint');
+                var text = {
+                    MONTHLY_SALARY: ['Salary per month (₹)', 'e.g. 5500', 'A fixed amount for the month.'],
+                    PER_DAY: ['Pay per day worked (₹)', 'e.g. 300', 'Paid only for the days they work.'],
+                    HOURLY: ['Pay per hour (₹)', 'e.g. 120', 'You enter the hours each day on the Today screen.'],
+                    PER_UNIT: ['Price per litre (₹)', 'e.g. 72', 'Pay depends on the litres delivered each day. You enter the litres on the Today screen.'],
+                    PER_TASK: ['Pay per task done (₹)', 'e.g. 50', 'Paid for each task done.']
+                };
+                function refresh() {
+                    var t = text[pay.value] || text.MONTHLY_SALARY;
+                    label.textContent = t[0]; rate.placeholder = t[1]; hint.textContent = t[2];
+                    document.getElementById('daysBlock').style.display = pay.value === 'MONTHLY_SALARY' ? '' : 'none';
+                }
+                job.addEventListener('change', function () {
+                    var name = job.options[job.selectedIndex].text.toLowerCase();
+                    if (name.indexOf('milk') >= 0) {
+                        pay.value = 'PER_UNIT';
+                    }
+                    refresh();
+                });
+                pay.addEventListener('change', refresh);
+                refresh();
+            })();
+        </script>
     </section>
+<script>
+        (function () {
+            var box = document.getElementById('staffSearch');
+            if (!box) { return; }
+            box.addEventListener('input', function () {
+                var q = box.value.trim().toLowerCase();
+                document.querySelectorAll('.person-card').forEach(function (card) {
+                    card.style.display = card.getAttribute('data-name').indexOf(q) >= 0 ? '' : 'none';
+                });
+            });
+        })();
+    </script>
 </main>
 </body>
 </html>

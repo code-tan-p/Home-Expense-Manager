@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Salary slip')}"></head>
+<body>
+<header th:replace="~{fragments :: header('reports')}"></header>
+<main>
+    <p class="noprint actions">
+        <a class="btn tiny" th:href="@{/reports(month=${month})}">&larr; Reports</a>
+        <button class="btn primary" type="button" onclick="window.print()">Print or save as PDF</button>
+    </p>
+    <section class="card slip">
+        <h1>Salary slip</h1>
+        <p><strong th:text="${worker.name}">Name</strong> · <span th:text="${worker.workerType.name}">Maid</span><br>
+            <span th:text="${#temporals.format(month, 'MMMM yyyy')}">October 2026</span>
+            <span th:if="${summary.hasPeriod()}"> · counted from <span th:text="${#temporals.format(summary.from(), 'd MMM')}">1 Oct</span>
+                to <span th:text="${#temporals.format(summary.to(), 'd MMM yyyy')}">30 Oct 2026</span></span></p>
+        <p class="meta">Came <strong th:text="${summary.came()}">0</strong> days ·
+            leave <strong th:text="${summary.leave()}">0</strong> ·
+            holiday <strong th:text="${summary.holiday() + summary.noDelivery()}">0</strong> ·
+            did not come <strong th:text="${summary.absent()}">0</strong>
+            <span th:if="${summary.litresMilli() > 0}"> · milk <strong th:text="${summary.litres} + ' litres'">0</strong></span></p>
+        <table class="breakdown">
+            <tr th:each="line : ${earnings.lines()}">
+                <td th:text="${line.date() != null} ? ${#temporals.format(line.date(), 'd MMM')} : ''">1 Oct</td>
+                <td th:text="${line.text()}">Explanation</td>
+                <td class="num" th:text="${line.amountPaise() != null} ? ${T(com.homeexpense.money.Money).format(line.amountPaise())} : 'to be decided'">₹0.00</td>
+            </tr>
+        </table>
+        <p>Earned <strong th:text="${T(com.homeexpense.money.Money).format(earnings.totalPaise())}">₹0.00</strong><br>
+            Paid <strong th:text="${T(com.homeexpense.money.Money).format(paidPaise)}">₹0.00</strong><br>
+            <span class="total">Balance <span th:text="${T(com.homeexpense.money.Money).format(earnings.totalPaise() - paidPaise)}">₹0.00</span></span></p>
+        <p class="meta" th:unless="${earnings.finalized()}">This month is not closed yet, so the amounts can still change.</p>
+    </section>
+</main>
+</body>
+</html>

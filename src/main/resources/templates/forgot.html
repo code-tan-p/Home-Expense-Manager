@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Forgot password')}"></head>
+<body>
+<header th:replace="~{fragments :: header('forgot')}"></header>
+<main>
+    <section class="card" style="max-width:26rem;margin:2rem auto">
+        <h1>Forgot your password?</h1>
+        <div th:replace="~{fragments :: messages}"></div>
+        <div th:if="${mailEnabled}">
+            <p class="sub">Type your email. We will send you a link to choose a new password. The link works once, for 30 minutes.</p>
+            <form th:action="@{/forgot}" method="post">
+                <label for="email">Email</label>
+                <input id="email" type="email" name="email" autocomplete="username" required autofocus>
+                <button class="btn primary" type="submit" style="margin-top:.75rem">Send me the link</button>
+            </form>
+        </div>
+        <div th:unless="${mailEnabled}">
+            <p class="sub">Password reset by email is not set up on this server yet. Please ask the person who runs it to set up the email settings.</p>
+        </div>
+        <p class="meta" style="margin-top:1rem"><a class="btn" th:href="@{/login}">Back to sign in</a></p>
+    </section>
+</main>
+</body>
+</html>

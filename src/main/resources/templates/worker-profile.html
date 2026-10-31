@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Worker profile')}"></head>
+<body>
+<header th:replace="~{fragments :: header('staff')}"></header>
+<main>
+    <h1 th:text="${worker.name}">Name</h1>
+    <p class="sub"><span th:text="${worker.workerType.name}">Maid</span></p>
+    <p class="actions"><a class="btn tiny" th:href="@{/staff}">&larr; All staff</a>
+        <a class="btn tiny" th:href="@{/calendar(workerId=${worker.id})}">Calendar</a>
+        <a class="btn tiny" th:href="@{/attendance/{id}(id=${worker.id})}">Attendance records</a>
+        <a class="btn tiny" th:href="@{/pay/history/{id}(id=${worker.id})}">Payments</a></p>
+
+    <div th:replace="~{fragments :: messages}"></div>
+
+    <section class="card">
+        <h2>This month's calendar</h2>
+        <th:block th:replace="~{calendar-fragment :: grid(${cal}, ${worker}, ${month})}"></th:block>
+        <p class="actions"><a class="btn tiny" th:href="@{/calendar(workerId=${worker.id}, month=${month})}">Open the full calendar</a></p>
+    </section>
+
+    <section class="card">
+        <h2>Holiday or leave for <span th:text="${worker.name}">Name</span> only</h2>
+        <p class="meta">Add a day, or a run of days, when only this person is off (for example a festival at their home). It is paid
+            like a holiday and shows on the calendar. Other workers are not affected.</p>
+        <form th:action="@{/staff/{id}/holiday(id=${worker.id})}" method="post" class="actions">
+            <label class="meta">From <input class="small" type="date" name="from" required></label>
+            <label class="meta">To (optional) <input class="small" type="date" name="to"></label>
+            <select name="kind" aria-label="Holiday or leave" style="width:auto">
+                <option value="HOUSEHOLD_HOLIDAY">Holiday (we are away)</option>
+                <option value="APPROVED_LEAVE">Leave (they asked)</option>
+            </select>
+            <button class="btn" type="submit">Add</button>
+        </form>
+    </section>
+
+    <section class="card">
+        <h2>Details</h2>
+        <form th:action="@{/staff/{id}/details(id=${worker.id})}" method="post">
+            <div class="form-grid">
+                <div><label for="name">Name</label>
+                    <input id="name" type="text" name="name" maxlength="100" required th:value="${worker.name}"></div>
+                <div><label for="phone">Phone</label>
+                    <input id="phone" type="text" name="phone" maxlength="30" th:value="${worker.phone}"></div>
+                <div><label for="notes">Notes</label>
+                    <input id="notes" type="text" name="notes" maxlength="500" th:value="${worker.notes}"></div>
+            </div>
+            <button class="btn primary" type="submit">Save details</button>
+        </form>
+        <p class="meta">The job cannot be changed here. For a different job, add them again as a new worker.</p>
+    </section>
+
+    <section class="card">
+        <h2>Employment history</h2>
+        <ul>
+            <li th:each="e : ${employment}">
+                From <strong th:text="${#temporals.format(e.startDate, 'd MMM yyyy')}">1 Jan 2026</strong>
+                <span th:if="${e.endDate != null}"> to <strong th:text="${#temporals.format(e.endDate, 'd MMM yyyy')}">1 Jan 2027</strong></span>
+                <span th:if="${e.endDate == null}">(still working)</span>
+                <span class="meta" th:if="${e.endReason != null}" th:text="'· ' + ${e.endReason}"></span>
+            </li>
+        </ul>
+    </section>
+
+    <section class="card">
+        <h2>Pay history</h2>
+        <ul>
+            <li th:each="r : ${rates}">
+                <strong th:text="${T(com.homeexpense.money.Money).format(r.amountPaise)}">₹0.00</strong>
+                <span th:text="${r.unitLabel}">per month</span>,
+                from <span th:text="${#temporals.format(r.effectiveFrom, 'd MMM yyyy')}">1 Jan 2026</span>
+                <span th:if="${r.effectiveTo != null}"> to <span th:text="${#temporals.format(r.effectiveTo, 'd MMM yyyy')}">1 Jan 2027</span></span>
+            </li>
+        </ul>
+    </section>
+</main>
+</body>
+</html>

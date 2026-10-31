@@ -1,0 +1,19 @@
+# Start:  docker compose up -d      Open: http://localhost:8080/      Stop: docker compose down
+# Many people can sign up; each gets a private household. Put HTTPS in front before opening it to the internet.
+# Records are kept in the named volume "home-expense-data" and survive restarts and upgrades.
+services:
+  home-expense:
+    build: .
+    ports:
+      # Only this computer can open it. Change to "8080:8080" to allow other devices on your network.
+      # Do that only with HTTPS in front (for example a reverse proxy), because passwords are sent as typed.
+      - "127.0.0.1:8080:8080"
+    environment:
+      HOME_EXPENSE_TIMEZONE: Asia/Kolkata
+      # Set to "true" once the site is served over HTTPS, so the sign-in cookie is never sent over plain HTTP.
+      HOME_EXPENSE_SECURE_COOKIE: "false"
+    volumes:
+      - home-expense-data:/data
+    restart: unless-stopped
+volumes:
+  home-expense-data:

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Reports')}"></head>
+<body>
+<header th:replace="~{fragments :: header('reports')}"></header>
+<main>
+    <h1>Reports</h1>
+    <p class="sub">Monthly salary report and payments. Print this page or download the spreadsheet files.</p>
+    <p class="noprint">
+        <a class="btn tiny" th:href="@{/reports(month=${previous})}">&larr; Earlier</a>
+        <strong th:text="${#temporals.format(month, 'MMMM yyyy')}">October 2026</strong> ·
+        <a class="btn tiny" th:href="@{/reports(month=${next})}">Later &rarr;</a>
+    </p>
+    <p class="noprint actions">
+        <button class="btn" type="button" onclick="window.print()">Print</button>
+        <a class="btn" th:href="@{/reports/salary.csv(month=${month})}">Download salary (CSV)</a>
+        <a class="btn" th:href="@{/reports/payments.csv(from=${month.atDay(1)}, to=${month.atEndOfMonth()})}">Download payments (CSV)</a>
+        <a class="btn" th:href="@{/reports/advances.csv}">Download advances (CSV)</a>
+    </p>
+
+    <section class="card empty" th:if="${rows.isEmpty()}"><p>Nobody was working in this month.</p></section>
+
+    <section class="card" th:if="${!rows.isEmpty()}">
+        <h2>Salary for <span th:text="${#temporals.format(month, 'MMMM yyyy')}">October 2026</span></h2>
+        <div class="tablewrap stack">
+        <table class="breakdown">
+            <tr><th>Worker</th><th>Counted</th><th>Came</th><th>Leave</th><th>Holiday</th><th>Absent</th><th>Attendance</th><th>Litres</th><th>Earned</th><th>Paid</th><th>To pay</th></tr>
+            <tr th:each="r : ${rows}">
+                <td><a th:href="@{/staff/{id}/profile(id=${r.worker().id})}" th:text="${r.worker().name}">Name</a>
+                    <span class="meta" th:text="${r.worker().workerType.name}">Maid</span>
+                    <span class="badge done" th:if="${r.closed()}">Closed</span></td>
+                <td data-label="Counted" th:text="${r.summary().hasPeriod()} ? ${#temporals.format(r.summary().from(), 'd MMM')} + ' to ' + ${#temporals.format(r.summary().to(), 'd MMM')} : '-'">1 Oct to 30 Oct</td>
+                <td data-label="Came" th:text="${r.summary().came()}">0</td>
+                <td data-label="Leave" th:text="${r.summary().leave()}">0</td>
+                <td data-label="Holiday" th:text="${r.summary().holiday() + r.summary().noDelivery()}">0</td>
+                <td data-label="Absent" th:text="${r.summary().absent()}">0</td>
+                <td data-label="Attendance" th:text="${r.summary().attendancePercent != null} ? ${r.summary().attendancePercent} + '%' : '-'">100%</td>
+                <td data-label="Litres" th:text="${r.summary().litresMilli() > 0} ? ${r.summary().litres} : '-'">-</td>
+                <td data-label="Earned" class="num" th:text="${T(com.homeexpense.money.Money).format(r.earnedPaise())}">₹0.00</td>
+                <td data-label="Paid" class="num" th:text="${T(com.homeexpense.money.Money).format(r.paidPaise())}">₹0.00</td>
+                <td data-label="To pay" class="num" th:text="${T(com.homeexpense.money.Money).format(r.stillToPayPaise())}">₹0.00</td>
+            </tr>
+            <tr>
+                <td colspan="8"><strong>Total</strong></td>
+                <td class="num" th:text="${T(com.homeexpense.money.Money).format(totalEarned)}">₹0.00</td>
+                <td class="num" th:text="${T(com.homeexpense.money.Money).format(totalPaid)}">₹0.00</td>
+                <td class="num" th:text="${T(com.homeexpense.money.Money).format(totalEarned - totalPaid)}">₹0.00</td>
+            </tr>
+        </table>
+        </div>
+        <p class="meta noprint">
+            <span th:each="r : ${rows}"><a class="btn tiny" th:href="@{/reports/slip/{id}(id=${r.worker().id}, month=${month})}"
+               th:text="'Salary slip: ' + ${r.worker().name}">slip</a> </span>
+        </p>
+    </section>
+
+    <section class="card" th:if="${!rows.isEmpty()}">
+        <h2>Still to pay</h2>
+        <p class="meta">Total still to pay for the month: <strong th:text="${T(com.homeexpense.money.Money).format(totalEarned - totalPaid)}">₹0.00</strong>.
+            Advances still to take back: <strong th:text="${T(com.homeexpense.money.Money).format(advanceBalance)}">₹0.00</strong>.</p>
+    </section>
+
+    <section class="card" th:if="${!advances.isEmpty()}">
+        <h2>Advances</h2>
+        <div class="tablewrap">
+        <table class="breakdown">
+            <tr><th>Worker</th><th>Given</th><th>Amount</th><th>Taken back</th><th>Still to take back</th></tr>
+            <tr th:each="a : ${advances}">
+                <td th:text="${a.worker().name}">Name</td>
+                <td th:text="${#temporals.format(a.balance().advance().givenOn, 'd MMM yyyy')}">1 Oct 2026</td>
+                <td class="num" th:text="${T(com.homeexpense.money.Money).format(a.balance().advance().amountPaise)}">₹0.00</td>
+                <td class="num" th:text="${T(com.homeexpense.money.Money).format(a.balance().recoveredPaise())}">₹0.00</td>
+                <td class="num" th:text="${T(com.homeexpense.money.Money).format(a.balance().balancePaise())}">₹0.00</td>
+            </tr>
+        </table>
+        </div>
+    </section>
+
+    <section class="card" th:if="${!payments.isEmpty()}">
+        <h2>Payments in the month</h2>
+        <div class="tablewrap">
+        <table class="breakdown">
+            <tr><th>Date</th><th>Worker</th><th>Amount</th><th>How</th><th>Reference</th></tr>
+            <tr th:each="p : ${payments}">
+                <td th:text="${#temporals.format(p.paidOn, 'd MMM')}">1 Oct</td>
+                <td th:text="${p.worker.name}">Name</td>
+                <td class="num" th:text="${T(com.homeexpense.money.Money).format(p.amountPaise)}">₹0.00</td>
+                <td th:text="${p.method}">CASH</td>
+                <td th:text="${p.reference}">ref</td>
+            </tr>
+        </table>
+        </div>
+    </section>
+</main>
+</body>
+</html>

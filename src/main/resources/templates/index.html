@@ -19,7 +19,7 @@
         <a class="btn quiet" th:unless="${isToday}" th:href="@{/}">Back to today</a>
         <span class="spacer"></span>
         <form th:action="@{/work/all-present}" method="post" th:if="${pending > 0}"
-              onsubmit="return confirm('Mark everyone who is not recorded yet as worked? Milk and hourly workers are skipped.')">
+              title="Marks everyone not recorded yet as worked. Milk and hourly workers are skipped. Each entry can be undone.">
             <input type="hidden" name="date" th:value="${date}">
             <button class="btn primary" type="submit">Mark all as worked</button>
         </form>
@@ -38,7 +38,8 @@
             <div class="person">
                 <div class="avatar" th:text="${#strings.substring(day.worker().name, 0, 1)}">A</div>
                 <div>
-                    <div class="name" th:text="${day.worker().name}">Anita Sharma</div>
+                    <div class="name"><span th:text="${day.worker().name}">Anita Sharma</span>
+                        <a class="btn tiny" th:href="@{/calendar(workerId=${day.worker().id})}" style="margin-left:.5rem">Calendar</a></div>
                     <div class="meta" th:text="${day.worker().workerType.name}">Maid</div>
                 </div>
             </div>
@@ -55,7 +56,7 @@
                 <span class="badge off" th:if="${a.record().outcome.name() == 'PARTIAL'}">Partly done</span>
                 <span class="badge off" th:if="${a.record().outcome.name() == 'NOT_DONE' and a.record().absenceReason.name() == 'APPROVED_LEAVE'}">On leave</span>
                 <span class="badge off" th:if="${a.record().outcome.name() == 'NOT_DONE' and a.record().absenceReason.name() == 'HOUSEHOLD_HOLIDAY'}"
-                      th:text="${milk ? 'No delivery' : 'Our holiday'}">Our holiday</span>
+                      th:text="${milk ? 'No delivery' : 'Holiday (we are away)'}">Our holiday</span>
                 <span class="badge wait" th:if="${a.record().outcome.name() == 'NOT_DONE' and a.record().absenceReason.name() == 'UNAUTHORIZED_ABSENCE'}">Didn't come</span>
                 <form th:if="${a.record().absenceReason != null and a.record().absenceReason.name() == 'UNAUTHORIZED_ABSENCE' and a.record().deductionDecision.name() == 'PENDING'}"
                       th:action="@{/work/deduction}" method="post" class="actions">
@@ -67,7 +68,7 @@
                 </form>
                 <span class="meta" th:if="${a.record().absenceReason != null and a.record().absenceReason.name() == 'UNAUTHORIZED_ABSENCE' and a.record().deductionDecision.name() == 'APPROVED'}">Pay reduced</span>
                 <span class="meta" th:if="${a.record().absenceReason != null and a.record().absenceReason.name() == 'UNAUTHORIZED_ABSENCE' and a.record().deductionDecision.name() == 'WAIVED'}">Paid in full</span>
-                <form th:action="@{/work/undo}" method="post" onsubmit="return confirm('Remove this entry so you can record it again?')">
+                <form th:action="@{/work/undo}" method="post">
                     <input type="hidden" name="date" th:value="${date}">
                     <input type="hidden" name="recordId" th:value="${a.record().id}">
                     <button class="btn quiet" type="submit">Undo</button>
@@ -80,28 +81,33 @@
                 <input type="hidden" name="entryId" th:value="${a.entry().id}">
                 <input class="small" type="text" inputmode="decimal" name="quantity" placeholder="Litres" required
                        th:if="${milk}" aria-label="Litres delivered">
+                <span class="chips" th:if="${milk}">
+                    <button class="btn chip" type="button" th:each="q : ${T(java.util.List).of('0.5','1','1.5','2')}" th:text="${q} + ' L'"
+                            th:attr="onclick='this.form.quantity.value=&quot;' + ${q} + '&quot;;this.form.requestSubmit();'">1 L</button>
+                </span>
                 <input class="small" type="text" inputmode="decimal" name="hours" placeholder="Hours" required
                        th:if="${hourly}" aria-label="Hours worked">
                 <button class="btn primary" type="submit" th:text="${milk ? 'Save litres' : 'Done'}">Done</button>
             </form>
         </div>
 
-        <form class="actions activity" th:if="${day.notRecordedCount() > 0}" th:action="@{/work/absent}" method="post">
+        <form class="actions activity" th:if="${day.notRecordedCount() > 0 and !dayByDayIds.contains(day.worker().id)}" th:action="@{/work/absent}" method="post">
             <input type="hidden" name="date" th:value="${date}">
             <input type="hidden" name="workerId" th:value="${day.worker().id}">
             <span class="meta">Didn't work today:</span>
             <button class="btn" name="reason" value="HOUSEHOLD_HOLIDAY" type="submit"
-                    th:text="${milk ? 'No delivery' : 'Our holiday'}">Our holiday</button>
-            <button class="btn" name="reason" value="APPROVED_LEAVE" type="submit" th:unless="${milk}">On leave</button>
+                    th:text="${milk ? 'No delivery' : 'Holiday (we are away)'}">Our holiday</button>
+            <button class="btn" name="reason" value="APPROVED_LEAVE" type="submit" th:unless="${milk}">Leave (they asked)</button>
             <button class="btn caution" name="reason" value="UNAUTHORIZED_ABSENCE" type="submit"
-                    title="Didn't come and had not asked. This can reduce pay." th:unless="${milk}">Didn't come</button>
+                    title="Didn't come and had not asked. This can reduce pay." th:unless="${milk}">Absent (did not tell)</button>
         </form>
 
         <div class="activity" th:if="${!day.unscheduled().isEmpty()}">
             <span class="badge wait" th:text="${day.unscheduledWorkLabel()}">Extra work</span>
         </div>
         <ul class="plain" th:if="${!day.flags().isEmpty()}">
-            <li th:each="f : ${day.flags()}" th:text="${f}">note</li>
+            <li th:each="f : ${day.flags()}" th:unless="${dayByDayIds.contains(day.worker().id) and #strings.contains(f, 'not recorded yet')}"
+                th:text="${f}">note</li>
         </ul>
     </section>
 </main>
