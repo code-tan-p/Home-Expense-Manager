@@ -91,7 +91,7 @@
             </form>
         </div>
 
-        <form class="actions activity" th:if="${day.notRecordedCount() > 0}" th:action="@{/work/absent}" method="post">
+        <form class="actions activity" th:if="${day.notRecordedCount() > 0 and !dayByDayIds.contains(day.worker().id)}" th:action="@{/work/absent}" method="post">
             <input type="hidden" name="date" th:value="${date}">
             <input type="hidden" name="workerId" th:value="${day.worker().id}">
             <span class="meta">Didn't work today:</span>
@@ -106,7 +106,8 @@
             <span class="badge wait" th:text="${day.unscheduledWorkLabel()}">Extra work</span>
         </div>
         <ul class="plain" th:if="${!day.flags().isEmpty()}">
-            <li th:each="f : ${day.flags()}" th:text="${f}">note</li>
+            <li th:each="f : ${day.flags()}" th:unless="${dayByDayIds.contains(day.worker().id) and #strings.contains(f, 'not recorded yet')}"
+                th:text="${f}">note</li>
         </ul>
     </section>
 </main>

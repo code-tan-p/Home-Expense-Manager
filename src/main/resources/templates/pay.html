@@ -102,7 +102,7 @@
                     <option th:each="m : ${methods}" th:value="${m.name()}"
                             th:text="${m.name() == 'UPI' ? 'UPI' : (m.name() == 'CASH' ? 'Cash' : 'Bank transfer')}">Cash</option>
                 </select>
-                <input class="small" type="text" name="reference" maxlength="60" placeholder="Reference (optional)" aria-label="Payment reference, optional">
+                <input class="small" type="text" name="reference" maxlength="60" placeholder="Reference" aria-label="Payment reference, optional">
                 <button class="btn primary" type="submit">Record payment</button>
             </form>
             <p class="meta"><a th:href="@{/pay/history/{id}(id=${r.worker().id})}">Payments and corrections</a> ·

@@ -13,7 +13,9 @@ import com.homeexpense.model.Worker;
 import com.homeexpense.model.finance.Payment;
 import com.homeexpense.repository.PaymentRepository;
 import com.homeexpense.repository.PaymentVoidRepository;
+import com.homeexpense.service.CalendarService;
 import com.homeexpense.service.DailyWorkService;
+import com.homeexpense.service.PayService;
 import com.homeexpense.service.EarningsService;
 import com.homeexpense.service.SettlementService;
 import com.homeexpense.service.WorkerService;
@@ -36,9 +38,14 @@ public class DashboardController {
     private final PaymentRepository payments;
     private final PaymentVoidRepository voids;
     private final Clock clock;
+    private final CalendarService calendar;
+    private final PayService payService;
 
     public DashboardController(WorkerService workers, DailyWorkService dailyWork, EarningsService earnings,
-                               SettlementService settlements, PaymentRepository payments, PaymentVoidRepository voids, Clock clock) {
+                               SettlementService settlements, PaymentRepository payments, PaymentVoidRepository voids, Clock clock,
+                               CalendarService calendar, PayService payService) {
+        this.calendar = calendar;
+        this.payService = payService;
         this.workers = workers;
         this.dailyWork = dailyWork;
         this.earnings = earnings;
@@ -54,7 +61,9 @@ public class DashboardController {
         YearMonth month = YearMonth.from(today);
         List<Worker> active = workers.workersEmployedOn(today);
         DayView view = dailyWork.dayView(today);
-        long pending = view.workers().stream().mapToLong(DayView.WorkerDay::notRecordedCount).sum();
+        long pending = view.workers().stream()
+                .filter(w -> !isDayByDay(w.worker(), today))
+                .mapToLong(DayView.WorkerDay::notRecordedCount).sum();
 
         long earned = 0;
         long paid = 0;
@@ -65,8 +74,17 @@ public class DashboardController {
             try {
                 EarningsService.Preview preview = earnings.preview(worker.getId(), month);
                 earned += preview.totalPaise();
+                if (!isDayByDay(worker, today)) {
+                    int missing = calendar.summary(worker, month).notRecorded();
+                    if (missing > 0) {
+                        alerts.add(new Alert(worker, missing + (missing == 1 ? " day is" : " days are") + " not recorded yet this month."));
+                    }
+                }
                 for (String blocker : preview.blockers()) {
-                    alerts.add(new Alert(worker, blocker));
+                    // The "not recorded" blockers are one long list of dates; the short line above says it better.
+                    if (!blocker.contains("not recorded")) {
+                        alerts.add(new Alert(worker, blocker));
+                    }
                 }
             } catch (BusinessRuleException ignored) {
                 // Not employed this month: nothing to add.
@@ -97,5 +115,11 @@ public class DashboardController {
         model.addAttribute("alerts", alerts);
         model.addAttribute("recent", recent.stream().limit(5).toList());
         return "overview";
+    }
+
+    private boolean isDayByDay(Worker worker, LocalDate day) {
+        return payService.primaryModelOn(worker.getId(), day)
+                .filter(m -> m == com.homeexpense.model.PaymentModel.PER_DAY || m == com.homeexpense.model.PaymentModel.HOURLY
+                        || m == com.homeexpense.model.PaymentModel.PER_TASK).isPresent();
     }
 }

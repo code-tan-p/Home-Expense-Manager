@@ -166,9 +166,9 @@ main p a:not(.btn), main li a:not(.btn), .flash a { color: var(--secondary); fon
 main p a:not(.btn):hover, main li a:not(.btn):hover { color: var(--primary); }
 
 /* Phones: readable calendar notes, a glyph besides colour, and a one-row menu that scrolls sideways. */
-@media (max-width: 36rem) { .cal-note { font-size: .7rem; } nav a { white-space: nowrap; flex: 0 0 auto; } }
-.cal-cell.came::after { content: "¹3"; font-size: .7rem; }
-.cal-cell.absent::after { content: "¹5"; font-size: .7rem; }
+@media (max-width: 36rem) { .cal-note { font-size: .7rem; } nav { flex-wrap: wrap; overflow-x: visible; } nav a { white-space: nowrap; padding: .35rem .7rem; } }
+.cal-cell.came::after { content: "\2713"; font-size: .7rem; }
+.cal-cell.absent::after { content: "\2715"; font-size: .7rem; }
 .cal-cell.leave::after { content: "L"; font-size: .65rem; font-weight: 700; }
 .cal-cell.holiday::after, .cal-cell.no-delivery::after { content: "H"; font-size: .65rem; font-weight: 700; }
 
@@ -224,8 +224,8 @@ main p a:not(.btn):hover, main li a:not(.btn):hover { color: var(--primary); }
 
 /* Header: name and Sign out stay visible; the menu scrolls on its own row. */
 .userbar { display: flex; gap: .5rem; align-items: center; margin-left: auto; }
-.topbar .btn.small-btn { min-height: 2.4rem; padding: .3rem .8rem; background: transparent; color: var(--background); border-color: rgba(255,255,255,.35); }
-.topbar .btn.small-btn.active { background: var(--tertiary); color: var(--primary); }
+.topbar .btn.small-btn { min-height: 2.4rem; padding: .3rem .8rem; background: transparent; color: #F8F6EE; border-color: rgba(255,255,255,.55); }
+.topbar .btn.small-btn.active { background: #D9C9B2; color: #2E3A2F; }
 .topbar nav { flex: 1 1 100%; }
 
 /* Password helpers */
@@ -244,3 +244,14 @@ main p a:not(.btn):hover, main li a:not(.btn):hover { color: var(--primary); }
 .pw-rules li.ok::before { content: "\2713  "; }
 .pw-match.ok { color: var(--secondary); font-weight: 600; }
 .pw-match.bad { color: var(--accent); font-weight: 600; }
+
+/* Reports on a phone: every worker becomes a small card instead of a wide table. */
+@media (max-width: 36rem) {
+    .stack table, .stack tbody, .stack tr, .stack td { display: block; width: 100%; }
+    .stack tr:first-child { display: none; }
+    .stack tr { border-bottom: 1px solid var(--line); padding: .5rem 0; }
+    .stack td { border: 0; padding: .15rem 0; text-align: left; }
+    .stack td[data-label]::before { content: attr(data-label) ": "; color: var(--muted); font-size: .85rem; }
+    .stack td.num { text-align: left; }
+}
+.btn.tiny { min-height: 2.2rem; padding: .25rem .7rem; font-size: .9rem; }

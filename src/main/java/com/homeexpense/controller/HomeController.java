@@ -54,6 +54,9 @@ public class HomeController {
         model.addAttribute("isToday", day.equals(today));
         model.addAttribute("view", view);
         model.addAttribute("payModels", payModels);
+        // Day-by-day workers are only marked on the days they came: no Leave / Holiday / Absent buttons, no "not recorded" notes.
+        model.addAttribute("dayByDayIds", payModels.entrySet().stream().filter(e -> dayByDay(e.getValue()))
+                .map(Map.Entry::getKey).collect(java.util.stream.Collectors.toSet()));
         // Day-by-day workers (per day, per hour, per task) are only marked on the days they came, so they never count as "to record".
         model.addAttribute("pending", view.workers().stream()
                 .filter(w -> !dayByDay(payModels.get(w.worker().getId())))
