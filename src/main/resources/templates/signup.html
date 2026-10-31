@@ -11,14 +11,14 @@
         <form th:action="@{/signup}" method="post">
             <div class="form-grid" style="grid-template-columns:1fr">
                 <div><label for="name">Your name</label>
-                    <input id="name" name="name" maxlength="60" autocomplete="name" required autofocus></div>
+                    <input id="name" name="name" maxlength="60" autocomplete="name" required autofocus th:value="${keepName}"></div>
                 <div><label for="email">Email</label>
-                    <input id="email" type="email" name="email" maxlength="120" autocomplete="username" required></div>
+                    <input id="email" type="email" name="email" maxlength="120" autocomplete="username" required th:value="${keepEmail}"></div>
                 <div><label for="password">Password</label>
-                    <input id="password" type="password" name="password" minlength="9" autocomplete="new-password" required
+                    <input id="password" type="password" name="password" autocomplete="new-password" required
                            data-new data-partner="confirm"></div>
                 <div><label for="confirm">Type the password again</label>
-                    <input id="confirm" type="password" name="confirm" minlength="9" autocomplete="new-password" required
+                    <input id="confirm" type="password" name="confirm" autocomplete="new-password" required
                            data-confirm="password"></div>
             </div>
             <p><button class="btn" type="button" data-suggest="password">Suggest a strong password</button></p>

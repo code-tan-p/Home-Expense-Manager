@@ -55,16 +55,26 @@ public class LoginController {
     @PostMapping("/signup")
     public String signUp(@RequestParam String name, @RequestParam String email, @RequestParam String password,
                          @RequestParam String confirm, HttpServletRequest request, HttpServletResponse response,
-                         RedirectAttributes flash) {
+                         RedirectAttributes flash, Model model) {
         String address = SecurityConfig.addressKey(request);
-        if (signUps.blocked(address)) {
-            throw new BusinessRuleException("Too many accounts were made from this address. Please try again in an hour.");
+        UserRecord created;
+        try {
+            if (signUps.blocked(address)) {
+                throw new BusinessRuleException("Too many accounts were made from this address. Please try again in an hour.");
+            }
+            created = accounts.signUp(name, email, password, confirm);
+        } catch (BusinessRuleException e) {
+            // Show the same page again with the message, keeping the name and email that were typed (never the passwords).
+            model.addAttribute("page", "");
+            model.addAttribute("error", e.getMessage());
+            model.addAttribute("keepName", name);
+            model.addAttribute("keepEmail", email);
+            return "signup";
         }
-        UserRecord created = accounts.signUp(name, email, password, confirm);
         signUps.record(address);
         sessions.signIn(request, response, created);
-        flash.addFlashAttribute("ok", "Welcome, " + created.name() + "! Your account is ready. Add the people who work for you on the Staff page.");
-        return "redirect:/";
+        flash.addFlashAttribute("ok", "Welcome, " + created.name() + "! Your account is ready. Add the people who work for you to begin.");
+        return "redirect:/overview";
     }
 
     @GetMapping("/forgot")

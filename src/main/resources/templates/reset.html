@@ -15,10 +15,10 @@
             <input type="hidden" name="token" th:value="${token}">
             <div class="form-grid" style="grid-template-columns:1fr">
                 <div><label for="password">New password</label>
-                    <input id="password" type="password" name="password" minlength="9" autocomplete="new-password" required autofocus
+                    <input id="password" type="password" name="password" autocomplete="new-password" required autofocus
                            data-new data-partner="confirm"></div>
                 <div><label for="confirm">Type it again</label>
-                    <input id="confirm" type="password" name="confirm" minlength="9" autocomplete="new-password" required
+                    <input id="confirm" type="password" name="confirm" autocomplete="new-password" required
                            data-confirm="password"></div>
             </div>
             <p><button class="btn" type="button" data-suggest="password">Suggest a strong password</button></p>

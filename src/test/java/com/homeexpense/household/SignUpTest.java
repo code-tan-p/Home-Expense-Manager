@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -87,7 +88,7 @@ class SignUpTest {
                         .param("name", name).param("email", email).param("password", "Secret-Pw-1!").param("confirm", "Secret-Pw-1!")
                         .param("_csrf", token).header("Referer", "http://localhost/signup")).andReturn();
         assertThat(done.getFlashMap().get("error")).as("sign-up error").isNull();
-        assertThat(done.getResponse().getRedirectedUrl()).isEqualTo("/");
+        assertThat(done.getResponse().getRedirectedUrl()).isEqualTo("/overview");
         MockHttpSession active = (MockHttpSession) done.getRequest().getSession(false);
         assertThat(done.getFlashMap().get("ok").toString()).contains("Welcome, " + name);
         mockMvc.perform(get("/").session(active)).andExpect(status().isOk());
@@ -130,29 +131,31 @@ class SignUpTest {
         String token = token(mockMvc.perform(get("/signup").session(s)).andReturn());
         mockMvc.perform(post("/signup").session(s).param("_csrf", token).param("name", "Ann").param("email", "not-an-email")
                 .param("password", "Secret-Pw-1!").param("confirm", "Secret-Pw-1!"))
-                .andExpect(flash().attribute("error", containsString("valid email")));
+                .andExpect(model().attribute("error", containsString("valid email")))
+                .andExpect(model().attribute("keepName", "Ann")).andExpect(content().string(containsString("value=\"Ann\"")));
         mockMvc.perform(post("/signup").session(s).param("_csrf", token).param("name", "Ann").param("email", "ann@example.com")
-                .param("password", "short").param("confirm", "short"))
-                .andExpect(flash().attribute("error", containsString("at least 9")));
+                .param("password", "Ab#1").param("confirm", "Ab#1"))
+                .andExpect(model().attribute("error", containsString("at least 9")))
+                .andExpect(content().string(containsString("ann@example.com")));
         mockMvc.perform(post("/signup").session(s).param("_csrf", token).param("name", "Ann").param("email", "ann@example.com")
                 .param("password", "alllowercase1").param("confirm", "alllowercase1"))
-                .andExpect(flash().attribute("error", containsString("uppercase letter")));
+                .andExpect(model().attribute("error", containsString("uppercase letter")));
         mockMvc.perform(post("/signup").session(s).param("_csrf", token).param("name", "Ann").param("email", "ann@example.com")
                 .param("password", "NoSpecial123").param("confirm", "NoSpecial123"))
-                .andExpect(flash().attribute("error", containsString("special character")));
+                .andExpect(model().attribute("error", containsString("special character")));
         mockMvc.perform(post("/signup").session(s).param("_csrf", token).param("name", "Ann").param("email", "ann@example.com")
                 .param("password", "Secret-Pw-1!").param("confirm", "Secret-Pw-2!"))
-                .andExpect(flash().attribute("error", containsString("not the same")));
+                .andExpect(model().attribute("error", containsString("not the same")));
         mockMvc.perform(post("/signup").session(s).param("_csrf", token).param("name", "Ann").param("email", "ann@example.com")
                 .param("password", "x".repeat(80)).param("confirm", "x".repeat(80)))
-                .andExpect(flash().attribute("error", containsString("too long")));
+                .andExpect(model().attribute("error", containsString("too long")));
 
         Person first = signUp("Same");
         MockHttpSession again = new MockHttpSession();
         String t2 = token(mockMvc.perform(get("/signup").session(again)).andReturn());
         mockMvc.perform(post("/signup").session(again).param("_csrf", t2).param("name", "Other").param("email", first.email().toUpperCase())
                         .param("password", "Secret-Pw-1!").param("confirm", "Secret-Pw-1!"))
-                .andExpect(flash().attribute("error", containsString("already has an account")));
+                .andExpect(model().attribute("error", containsString("already has an account")));
     }
 
     @Test
