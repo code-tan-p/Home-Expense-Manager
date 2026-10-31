@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Review before closing')}"></head>
+<body>
+<header th:replace="~{fragments :: header('pay')}"></header>
+<main>
+    <h1>Review <span th:text="${worker.name}">Name</span> before closing</h1>
+    <p class="sub"><span th:text="${#temporals.format(month, 'MMMM yyyy')}">October 2026</span>. A month can be closed only when everything below is decided.</p>
+    <p class="actions"><a class="btn tiny" th:href="@{/pay(month=${month})}">&larr; Back to Monthly Pay</a></p>
+
+    <div th:replace="~{fragments :: messages}"></div>
+
+    <section class="card empty" th:if="${blockers.isEmpty()}">
+        <p>Nothing is left to decide. You can close the month from Monthly Pay.
+            The pay is <strong th:text="${T(com.homeexpense.money.Money).format(total)}">₹0.00</strong>.</p>
+    </section>
+
+    <section class="card" th:if="${!unrecorded.isEmpty()}">
+        <h2>Days that were not recorded</h2>
+        <p class="meta">These days have no entry. Record them on the Today screen, or confirm below that they were not worked, so they earn nothing.</p>
+        <p class="meta">
+            <span th:each="u : ${unrecorded}"><a class="btn tiny" th:href="@{/(date=${u.date()})}"
+                  th:text="${#temporals.format(u.date(), 'EEE d MMM')}">Mon 5 Oct</a> </span>
+        </p>
+        <form th:action="@{/pay/review/{id}/unrecorded(id=${worker.id})}" method="post" class="actions">
+            <input type="hidden" name="month" th:value="${month}">
+            <label class="meta"><input type="checkbox" name="sure" value="yes" required style="width:auto"> Yes, these days were not worked</label>
+            <button class="btn" type="submit">Confirm: not worked</button>
+        </form>
+    </section>
+
+    <section class="card" th:if="${!lines.isEmpty()}">
+        <h2>Amounts that need a decision</h2>
+        <div th:each="l : ${lines}" style="margin-bottom:1rem">
+            <p><strong th:text="${#temporals.format(l.workDate, 'd MMM')}" th:if="${l.workDate != null}">5 Oct</strong>
+                <span th:text="${l.explanation}">Explanation</span></p>
+            <form th:if="${l.suggestedAmountPaise != null}" th:action="@{/pay/review/{id}/line(id=${worker.id})}" method="post" class="actions">
+                <input type="hidden" name="month" th:value="${month}">
+                <input type="hidden" name="lineId" th:value="${l.id}">
+                <input type="hidden" name="decision" value="ACCEPT_SUGGESTED">
+                <button class="btn primary" type="submit"
+                        th:text="'Accept ' + ${T(com.homeexpense.money.Money).format(l.suggestedAmountPaise)}">Accept</button>
+            </form>
+            <form th:action="@{/pay/review/{id}/line(id=${worker.id})}" method="post" class="actions">
+                <input type="hidden" name="month" th:value="${month}">
+                <input type="hidden" name="lineId" th:value="${l.id}">
+                <input type="hidden" name="decision" value="OVERRIDE">
+                <input class="small" type="text" name="amount" inputmode="decimal" required placeholder="Amount (₹)" aria-label="Amount">
+                <input class="small" type="text" name="reason" maxlength="200" required placeholder="Why this amount?" aria-label="Reason">
+                <button class="btn" type="submit">Use this amount</button>
+            </form>
+        </div>
+    </section>
+
+    <section class="card" th:if="${!partials.isEmpty()}">
+        <h2>Part days of a salaried worker</h2>
+        <div th:each="t : ${partials}" style="margin-bottom:1rem">
+            <p class="meta" th:text="${t.detail}">Part day</p>
+            <form th:if="${t.suggestedValue != null}" th:action="@{/pay/review/{id}/partial(id=${worker.id})}" method="post" class="actions">
+                <input type="hidden" name="month" th:value="${month}">
+                <input type="hidden" name="treatmentId" th:value="${t.id}">
+                <input type="hidden" name="decision" value="ACCEPT_SUGGESTED">
+                <button class="btn primary" type="submit">Accept the suggested reduction</button>
+            </form>
+            <form th:action="@{/pay/review/{id}/partial(id=${worker.id})}" method="post" class="actions">
+                <input type="hidden" name="month" th:value="${month}">
+                <input type="hidden" name="treatmentId" th:value="${t.id}">
+                <input type="hidden" name="decision" value="OVERRIDE">
+                <input class="small" type="text" name="units" inputmode="decimal" required placeholder="Unpaid part of the day (0 to 1)" aria-label="Unpaid part of the day">
+                <input class="small" type="text" name="reason" maxlength="200" required placeholder="Why?" aria-label="Reason">
+                <button class="btn" type="submit">Use this</button>
+            </form>
+        </div>
+    </section>
+
+    <section class="card" th:if="${!blockers.isEmpty() and unrecorded.isEmpty() and lines.isEmpty() and partials.isEmpty()}">
+        <h2>Other things to fix first</h2>
+        <ul><li th:each="b : ${blockers}" th:text="${b}">Blocker</li></ul>
+    </section>
+</main>
+</body>
+</html>

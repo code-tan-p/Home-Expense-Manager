@@ -90,6 +90,8 @@
                 <li th:each="b : ${r.earnings().blockers()}"
                     th:text="${#strings.contains(b, 'not recorded') ? 'Some days are not recorded yet. Open the calendar to see which, then record them on the Today screen.' : b}">Record the missing days first.</li>
             </ul>
+            <p th:if="${!r.earnings().blockers().isEmpty() and ended and !r.earnings().finalized()}">
+                <a class="btn" th:href="@{/pay/review/{id}(id=${r.worker().id}, month=${month})}">Review and fix before closing</a></p>
             <ul class="plain" th:if="${!r.earnings().warnings().isEmpty()}">
                 <li th:each="w : ${r.earnings().warnings()}" th:text="${w}">note</li>
             </ul>

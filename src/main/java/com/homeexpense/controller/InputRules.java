@@ -127,4 +127,13 @@ public final class InputRules {
         }
         return clean;
     }
+
+    /** Rupees to two decimals, zero allowed, at most the usual limit. Returns the cleaned text. */
+    public static String requireRupeesOrZero(String text, String what) {
+        String cleaned = text == null ? "" : text.strip().replace(",", "").replace("\u20B9", "").strip();
+        if (cleaned.matches("0+([.]0{1,2})?")) {
+            return "0";
+        }
+        return requireRupees(cleaned, what);
+    }
 }
