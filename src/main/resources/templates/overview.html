@@ -25,7 +25,7 @@
             <strong class="total" th:text="${T(com.homeexpense.money.Money).format(paidPaise)}">₹0.00</strong></div>
         <div class="card stat"><span class="meta">Still to pay</span>
             <strong class="total" th:text="${T(com.homeexpense.money.Money).format(outstandingPaise)}">₹0.00</strong>
-            <a class="btn tiny" th:href="@{/pay}">Open Monthly Pay</a></div>
+            <a class="btn tiny" th:href="@{/pay}">Open Pay</a></div>
         <div class="card stat"><span class="meta">Advances to take back</span>
             <strong class="total" th:text="${T(com.homeexpense.money.Money).format(advancePaise)}">₹0.00</strong></div>
     </section>

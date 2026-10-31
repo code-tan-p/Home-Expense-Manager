@@ -255,3 +255,10 @@ main p a:not(.btn):hover, main li a:not(.btn):hover { color: var(--primary); }
     .stack td.num { text-align: left; }
 }
 .btn.tiny { min-height: 2.2rem; padding: .25rem .7rem; font-size: .9rem; }
+
+/* Opening a section on a worker card looks like a button, not plain text. */
+details.activity > summary { display: inline-flex; align-items: center; min-height: 2.4rem; padding: .3rem .9rem; border: 1px solid var(--line);
+    border-radius: 10px; cursor: pointer; font-weight: 600; background: var(--card); }
+/* Calendar words break only between words on a phone. */
+.cal-note { overflow-wrap: break-word; word-break: normal; hyphens: auto; }
+@media (max-width: 30rem) { .cal-note { font-size: .6rem; } }

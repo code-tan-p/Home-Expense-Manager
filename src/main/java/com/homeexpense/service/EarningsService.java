@@ -345,7 +345,8 @@ public class EarningsService {
         }
         String clean = text.replaceAll("\\s*\\((?:standard |specific )?rate #\\d+\\)", "")
                 .replaceAll("\\s*\\((?:one day line per date)\\)", "")
-                .replaceAll("\\s*\\(scheduled work done\\)", "");
+                .replaceAll("\\s*\\(scheduled work done\\)", "")
+                .replace("day-units", "days");
         java.util.regex.Matcher m = ISO_DATE.matcher(clean);
         StringBuilder out = new StringBuilder();
         while (m.find()) {
@@ -353,7 +354,15 @@ public class EarningsService {
             m.appendReplacement(out, date.getDayOfMonth() + " " + date.getMonth().getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.ENGLISH));
         }
         m.appendTail(out);
-        return out.toString().replace(" .", ".");
+        String text2 = out.toString().replace(" .", ".");
+        java.util.regex.Matcher month = java.util.regex.Pattern.compile("\\b(\\d{4})-(\\d{2})\\b").matcher(text2);
+        StringBuilder months = new StringBuilder();
+        while (month.find()) {
+            java.time.YearMonth ym = java.time.YearMonth.of(Integer.parseInt(month.group(1)), Integer.parseInt(month.group(2)));
+            month.appendReplacement(months, ym.getMonth().getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.ENGLISH) + " " + ym.getYear());
+        }
+        month.appendTail(months);
+        return months.toString();
     }
 
     /** One explained line of a month: the day it is for (may be empty), the explanation, and the amount (null while it needs review). */

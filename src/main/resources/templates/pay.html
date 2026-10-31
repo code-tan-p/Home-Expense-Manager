@@ -63,7 +63,7 @@
             <p class="meta" th:if="${r.litresMilli() != null}">
                 Milk delivered:
                 <strong th:text="${r.summary().litres} + ' litres'">0 litres</strong>
-                on <span th:text="${r.deliveryDays()}">0</span> delivery days. Pay is the litres times the price per litre.
+                on <span th:text="${r.deliveryDays()}">0</span> <span th:text="${r.deliveryDays() == 1 ? 'delivery day' : 'delivery days'}">delivery days</span>. Pay is the litres times the price per litre.
             </p>
             <details class="activity" th:if="${!r.earnings().lines().isEmpty()}">
                 <summary>How this was worked out</summary>
@@ -102,7 +102,7 @@
                 <input class="small" type="text" name="amount" inputmode="decimal" placeholder="Amount paid (₹)" required aria-label="Amount paid">
                 <select name="method" aria-label="How was it paid" style="width:auto">
                     <option th:each="m : ${methods}" th:value="${m.name()}"
-                            th:text="${m.name() == 'UPI' ? 'UPI' : (m.name() == 'CASH' ? 'Cash' : 'Bank transfer')}">Cash</option>
+                            th:text="${m.name() == 'UPI' ? 'UPI' : (m.name() == 'CASH' ? 'Cash' : (m.name() == 'OTHER' ? 'Other' : 'Bank transfer'))}">Cash</option>
                 </select>
                 <input class="small" type="text" name="reference" maxlength="60" placeholder="Reference" aria-label="Payment reference, optional">
                 <button class="btn primary" type="submit">Record payment</button>
@@ -122,7 +122,7 @@
                     <input class="small" type="text" name="amount" inputmode="decimal" placeholder="Advance (₹)" required aria-label="Advance amount">
                     <select name="method" aria-label="How was it paid" style="width:auto">
                         <option th:each="m : ${methods}" th:value="${m.name()}"
-                                th:text="${m.name() == 'UPI' ? 'UPI' : (m.name() == 'CASH' ? 'Cash' : 'Bank transfer')}">Cash</option>
+                                th:text="${m.name() == 'UPI' ? 'UPI' : (m.name() == 'CASH' ? 'Cash' : (m.name() == 'OTHER' ? 'Other' : 'Bank transfer'))}">Cash</option>
                     </select>
                     <button class="btn" type="submit">Give advance</button>
                 </form>

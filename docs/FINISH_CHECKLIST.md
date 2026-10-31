@@ -8,14 +8,14 @@ Browser checks use the app at http://127.0.0.1:8080/ on a fresh test account.
 "Phone width" means the browser pane set to mobile size. "Dark mode" means the pane set to dark.
 A **day-by-day worker** is anyone paid per day, per hour or per task.
 
-Legend: `[ ]` to do · `[~]` built and covered by automated tests, still to be seen working in the browser (Part 4) · `[x]` done and seen working in the browser · `[owner]` only the owner can do it.
+Legend (31 Oct 2026 browser run by the agent: Part 4 passed except where marked): `[ ]` to do · `[~]` built and covered by automated tests, still to be seen working in the browser (Part 4) · `[x]` done and seen working in the browser · `[owner]` only the owner can do it.
 
 ---
 
 ## Part 1. Fixes from the browser test
 
 ### 1.1 Day-by-day workers are never nagged (G1, G8)
-- [~] **What:** no "not recorded" message, no Leave / Holiday / Absent buttons, not counted in "still to record", no missing-day lists.
+- [x] **What:** no "not recorded" message, no Leave / Holiday / Absent buttons, not counted in "still to record", no missing-day lists.
 - **How:** one helper `PayService.isDayByDay(workerId, date)`, used by Today (`HomeController`, `index.html`), Overview
   (`DashboardController`), Calendar (`CalendarService`: unmarked day = "no work"), Attendance page and Monthly Pay.
   Overview "Needs attention" becomes one short line per worker with a Calendar button.
@@ -24,43 +24,43 @@ Legend: `[ ]` to do · `[~]` built and covered by automated tests, still to be s
   "Needs attention" has short lines only. Open his calendar: unmarked days say "no work".
 
 ### 1.2 Header buttons readable in dark mode (G2)
-- [~] **What:** your name and **Sign out** clearly visible in dark mode.
+- [x] **What:** your name and **Sign out** clearly visible in dark mode.
 - **How:** fixed light text colour and a visible border for `.topbar .btn.small-btn` in `app.css`.
 - **See it work:** dark mode, any page: name and Sign out are easy to read.
 
 ### 1.3 Every action is a button (G3)
-- [~] **What:** no plain underlined action links left.
+- [x] **What:** no plain underlined action links left.
 - **How:** add the button style in `overview.html`, `staff.html`, `pay.html`, `reports.html` (Earlier / Later, one
   "Slip" button per row), then search all templates for any other plain `<a>` used as an action.
 - **See it work:** visit Overview, Staff, Monthly Pay, Reports, Calendar, Attendance, Month-end, Payments, Profile:
   every action is a rounded button.
 
 ### 1.4 Phone layout (G4)
-- [~] **What:** menu not cut off; Reports readable; placeholder not cut; calendar marks correct.
+- [x] **What:** menu not cut off; Reports readable; placeholder not cut; calendar marks correct.
 - **How:** shorter menu labels ("Pay") and a menu that wraps into two rows on a phone; Reports shows one card per
   worker on a phone; placeholder "Reference"; fix the broken calendar characters (`"¹3"`, `"¹5"`) to a tick and a cross.
 - **See it work:** phone width: every menu item is fully readable without sideways scrolling; Reports shows cards
   with all numbers visible; calendar shows ✓ on days they came and ✕ on days they did not come.
 
 ### 1.5 Sign-up form keeps what was typed (G5, G6)
-- [~] **What:** a refused password keeps the name and email; short passwords get our own message.
+- [x] **What:** a refused password keeps the name and email; short passwords get our own message.
 - **How:** `LoginController` shows the sign-up / reset page again with name and email filled instead of reloading;
   remove `minlength` from the password boxes in `signup.html` and `reset.html`.
 - **See it work:** sign up with `Weak#1` (too short): our message appears, name and email are still filled in,
   only the password boxes are empty.
 
 ### 1.6 Sign-up lands on Overview (G7)
-- [~] **What:** after sign-up, Overview with the welcome message and a big **Add your first worker** button.
+- [x] **What:** after sign-up, Overview with the welcome message and a big **Add your first worker** button.
 - **How:** redirect to `/overview` in `LoginController`; button in `overview.html`.
 - **See it work:** create a new account: you land on Overview and the button opens Staff.
 
 ### 1.7 Monthly Pay wording (G9)
-- [~] **What:** "1 day" / "2 days"; only one "not recorded" count, and it matches the calendar.
+- [x] **What:** "1 day" / "2 days"; only one "not recorded" count, and it matches the calendar.
 - **How:** plural helper in `pay.html`; show the calendar count only; the long earnings text stays only on a refused close.
 - **See it work:** a worker who came once shows "Came 1 day"; the counts on Pay and Calendar are the same number.
 
 ### 1.8 Plain "How this was worked out" (G10)
-- [~] **What:** no "(standard rate #2)", no "(one day line per date)", dates like "5 Oct".
+- [x] **What:** no "(standard rate #2)", no "(one day line per date)", dates like "5 Oct".
 - **How:** clean the text when it is shown (`EarningsService.Line`); the saved audit text is not changed.
 - **See it work:** open "How this was worked out" on Monthly Pay and on a salary slip: plain sentences only.
 
@@ -70,26 +70,26 @@ Legend: `[ ]` to do · `[~]` built and covered by automated tests, still to be s
 
 ### 2.1 Worker-specific holidays
 _Built without a new table: a holiday or leave on the worker's profile is saved day by day exactly like one marked on the Today screen, so the calendar and the pay already treat it correctly._
-- [~] **What:** give one worker paid days off (for example Sunita's festival leave) without a household holiday.
+- [x] **What:** give one worker paid days off (for example Sunita's festival leave) without a household holiday.
 - **How (as built):** a "Holiday or leave for this person only" form on the worker profile (one day or up to 31 days, `WorkerProfileController`) that records each
   scheduled day through `DailyWorkService.markWholeDay`; no new table was needed.
 - **See it work:** on Sunita's profile add a paid holiday on a weekday. Her calendar shows "Holiday" on that day,
   another worker's does not, and her Monthly Pay is not reduced.
 
 ### 2.2 Confirm unrecorded days for monthly workers
-- [~] **What:** before closing a month, a monthly worker's unrecorded days can be confirmed as "not worked" with one button.
+- [x] **What:** before closing a month, a monthly worker's unrecorded days can be confirmed as "not worked" with one button.
 - **How:** button on Monthly Pay that calls the existing `EarningsService.confirmUnrecorded`, with a clear confirmation.
 - **See it work:** leave two of Sunita's past days unrecorded; Monthly Pay offers "These days were not worked"; after
   confirming, the month can be closed and the pay reflects it.
 
 ### 2.3 Review a line that needs a decision
-- [~] **What:** lines marked "needs a decision" can be accepted or set to an amount, with a reason.
+- [x] **What:** lines marked "needs a decision" can be accepted or set to an amount, with a reason.
 - **How:** small form next to such a line, calling the existing `EarningsService.reviewLine`.
 - **See it work:** mark a salaried worker "Part day"; the line shows "needs a decision"; choose an amount with a reason;
   the total updates.
 
 ### 2.4 Change where an unpaid balance is carried
-- [~] **What:** on the month-end screen, move an unpaid balance to a later month.
+- [x] **What:** on the month-end screen, move an unpaid balance to a later month.
 - **How:** form on `settlement.html` calling the existing `SettlementService.correctCarry`, with a reason.
 - **See it work:** close a month with money still to pay; on Month-end choose a later month and save; the later month
   shows the carried amount.
@@ -110,16 +110,16 @@ _Built without a new table: a holiday or leave on the worker's profile is saved 
 
 Run after Parts 1 to 3. Tick each only when seen working.
 
-- [ ] **4.1 M1 Sign-up:** weak password refused with our message and form kept; eye, live match, suggest button work.
-- [ ] **4.2 M3 Workers:** weekdays only for monthly; per-day and milkman listed every day with no nagging.
-- [ ] **4.3 M4 Pay:** per-day = days marked × rate; milk = litres × price; monthly correct with holidays and leave.
-- [ ] **4.4 Corrections:** correct a day, correct a payment, reopen a month: old versions stay visible.
-- [ ] **4.5 Reports:** salary and payments CSV download; salary slip prints cleanly.
-- [ ] **4.6 Backup:** download a backup, add a worker, restore: the extra worker is gone and the old records are back.
-- [ ] **4.7 M5 Delete account:** wrong word and wrong password refused; right ones delete; same email signs up again.
-- [ ] **4.8 M6 Phone, light and dark:** every page readable, buttons only, Sign out visible.
-- [ ] **4.9 M7 Expenses gone:** no menu item, no page, no overview card.
-- [ ] **4.10 Two households:** a second account never sees the first one's workers or pay.
+- [x] **4.1 M1 Sign-up:** weak password refused with our message and form kept; eye, live match, suggest button work.
+- [x] **4.2 M3 Workers:** weekdays only for monthly; per-day and milkman listed every day with no nagging.
+- [x] **4.3 M4 Pay:** per-day = days marked × rate; milk = litres × price; monthly correct with holidays and leave.
+- [x] **4.4 Corrections:** correct a day, correct a payment, reopen a month: old versions stay visible.
+- [x] **4.5 Reports:** salary and payments CSV download; salary slip prints cleanly.
+- [~] **4.6 Backup:** (download works; restore through the file chooser could not be tested in the browser pane: do it by hand) download a backup, add a worker, restore: the extra worker is gone and the old records are back.
+- [x] **4.7 M5 Delete account:** wrong word and wrong password refused; right ones delete; same email signs up again.
+- [x] **4.8 M6 Phone, light and dark:** every page readable, buttons only, Sign out visible.
+- [x] **4.9 M7 Expenses gone:** no menu item, no page, no overview card.
+- [x] **4.10 Two households:** a second account never sees the first one's workers or pay.
 
 ---
 

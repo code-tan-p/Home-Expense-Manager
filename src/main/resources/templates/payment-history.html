@@ -51,7 +51,7 @@
                 <input class="small" type="date" name="paidOn" required aria-label="Date paid" th:value="${l.payment().paidOn}">
                 <select name="method" aria-label="How it was paid" style="width:auto">
                     <option th:each="m : ${methods}" th:value="${m.name()}" th:selected="${m == l.payment().method}"
-                            th:text="${m.name() == 'UPI' ? 'UPI' : (m.name() == 'CASH' ? 'Cash' : 'Bank transfer')}">Cash</option>
+                            th:text="${m.name() == 'UPI' ? 'UPI' : (m.name() == 'CASH' ? 'Cash' : (m.name() == 'OTHER' ? 'Other' : 'Bank transfer'))}">Cash</option>
                 </select>
                 <input class="small" type="text" name="reference" maxlength="60" placeholder="Reference" aria-label="Reference"
                        th:value="${l.payment().reference}">

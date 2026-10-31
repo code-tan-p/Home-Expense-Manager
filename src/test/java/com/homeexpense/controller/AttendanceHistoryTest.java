@@ -57,7 +57,7 @@ class AttendanceHistoryTest extends SqliteIntegrationTest {
                 .andExpect(content().string(containsString("Corrected: typed 2 by mistake")));
         // attendance percentage, missing days and the extra-work form
         mockMvc.perform(get("/attendance/" + id).param("month", "2026-04"))
-                .andExpect(content().string(containsString("Attendance this month")))
+                .andExpect(content().string(containsString("Attendance of the days recorded")))
                 .andExpect(content().string(containsString("100%")))
                 .andExpect(content().string(containsString("Days not recorded yet")))
                 .andExpect(content().string(containsString("Add extra or missed work")));
