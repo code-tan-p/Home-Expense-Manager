@@ -285,3 +285,31 @@ Original list, kept for reference:
 - [ ] G9. Monthly Pay wording: "Came 1 days" must read "1 day"; the "26 not recorded" and "27 scheduled activities are not recorded" lines for the same worker must agree.
 - [ ] G10. "How this was worked out": remove "(standard rate #2)" and show dates as "5 Oct" instead of 2026-10-05.
 - [ ] G11. Re-run this whole browser test after the fixes; then M2 (needs mail settings) and M8 (needs Docker Desktop on).
+
+## H. Fix plan for section G (how each fix will be done)
+
+Rule used everywhere: a "day-by-day" worker is one paid per day, per hour or per task. They are only marked on days
+they came; an unmarked day simply means they did not work. One shared helper decides this, so every screen agrees.
+
+| Fix | Cause found in the code | How it will be fixed | Proof |
+| --- | --- | --- | --- |
+| G1 No nagging for day-by-day workers | Today's per-worker message comes from `DailyWorkService.workerDay` and does not know the pay type; Today shows Leave / Holiday / Absent buttons to everyone; Overview, Calendar, Attendance and Monthly Pay count unmarked days for everyone | One helper `PayService.isDayByDay(workerId, date)`. Today: no "not recorded" line and no Leave / Holiday / Absent buttons for them (only Done, with hours for hourly). Calendar: unmarked days show as plain "no work", not "Not recorded". Attendance page and Monthly Pay: no missing-days list or "not recorded" count for them | MockMvc test with a per-day worker: none of those words appear; pay still correct |
+| G8 Overview counts | `DashboardController` adds every worker's unmarked activity and pastes the earnings blocker text | Use the same helper; "Still to record today" counts only monthly workers and the milkman. "Needs attention" becomes one short line per worker ("Ramesh: 30 days not recorded this month") with a Calendar button | Test: Overview shows the short line, never a date list |
+| G2 Dark-mode header buttons | `.topbar .btn.small-btn` uses `color: var(--background)`, which is dark in dark mode | Give the header buttons a fixed light text colour and a visible border in both modes | Browser check in dark mode |
+| G3 Text links to buttons | About ten links were left as plain `<a>` | Add the button style to: Overview "Record now", "Open Monthly Pay"; Staff "Profile and history", "Calendar"; Pay "See calendar", "Payments and corrections", "Month-end..."; Reports Earlier / Later and "Salary slip" (one small button per row; worker names stay plain text); then search every template for any other plain action link | Test that each page has those as `class="btn"`; browser check |
+| G4 Phone layout | Menu labels are long and the menu scrolls; the Reports table is wider than a phone; the placeholder is long; the calendar tick and cross marks are broken characters in the CSS (`"¹3"` and `"¹5"` instead of the tick and cross) | Menu: shorter labels ("Pay") and the menu wraps into two even rows on a phone instead of scrolling. Reports: on a phone each worker becomes a small card (stacked rows), on a computer it stays a table. Placeholder becomes "Reference" with the word "optional" in the label. Calendar: fix the two CSS characters | Browser check at phone width |
+| G5 Form wiped after a refused password | A refusal redirects back to the page, losing what was typed | Sign-up and reset catch the refusal and show the same page again with the name and email kept (passwords cleared) and the message on top | Test: the response still holds the typed name and email |
+| G6 Browser bubble for short passwords | `minlength="9"` on the boxes makes the browser stop the form first | Remove the browser limit; the live rule list already says "at least 9 characters", and the server message explains it | Test: an 8-character password gets our message |
+| G7 Where sign-up lands | Sign-up redirects to Today | Go to Overview with the welcome message and a big "Add your first worker" button | Test: redirect to /overview |
+| G9 Monthly Pay wording | Fixed word "days"; one count comes from the calendar (excludes today), the other from the earnings check (includes today) | "1 day" / "2 days"; show only one count (the calendar's) on Monthly Pay; the earnings check text stays only on the close-month error | Test for both lines |
+| G10 "How this was worked out" | The saved explanation has "(standard rate #2)", "(one day line per date)" and dates like 2026-10-05 | Clean the text when it is shown (remove rate numbers and the technical note, write dates as "5 Oct"); the saved audit text stays complete and unchanged | Test on the line text |
+| G11 Re-test | | Run all tests, rebuild, run the browser test agent again (owner watching), update this file, then M2 and M8 | Results written in section G |
+
+**Still needs the owner**
+- M2: mail settings for the server (for example a Gmail address with an app password): `SPRING_MAIL_HOST`, `SPRING_MAIL_PORT`,
+  `SPRING_MAIL_USERNAME`, `SPRING_MAIL_PASSWORD`, `HOME_EXPENSE_MAIL_FROM`, `HOME_EXPENSE_BASE_URL`, set as server settings, never typed in chat.
+- M8: start Docker Desktop.
+- After the re-test: say "push", then decide whether to merge the pull request into `main`.
+
+**Order of work:** G2 and G4's CSS first (smallest, visible at once), then G1 + G8 (one helper), G9, G10, G3, G5 + G6 + G7, then G11.
+One commit per group, tests green each time.
